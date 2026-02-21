@@ -192,7 +192,18 @@ function renderCatalog(artworksToRender) {
       const timer = new Timer();
       timer.start({ countdown: true, startValues: { seconds: secondsLeft } });
       timer.addEventListener("secondsUpdated", () => {
-        timerDisplay.innerText = timer.getTimeValues().toString();
+        let dias = timer.getTimeValues().days;
+        let horas = timer.getTimeValues().hours;
+        let minutos = timer.getTimeValues().minutes;
+        let segundos = timer.getTimeValues().seconds;
+
+        // Si falta más de 1 día, mostramos el texto fácil: "X días y Y horas"
+        if (dias > 0) {
+          timerDisplay.innerText = dias + " días, " + horas + " horas";
+        } else {
+          // Si falta menos de un día, mostramos el reloj normal (HH:MM:SS)
+          timerDisplay.innerText = timer.getTimeValues().toString();
+        }
       });
       timer.addEventListener("targetAchieved", () => {
         timerDisplay.innerText = "FINALIZADA";
@@ -248,7 +259,16 @@ async function openArtworkDetail(id_obra) {
         startValues: { seconds: secondsLeft },
       });
       detailTimer.addEventListener("secondsUpdated", () => {
-        timerDisplay.innerText = detailTimer.getTimeValues().toString();
+        let dias = detailTimer.getTimeValues().days;
+          let horas = detailTimer.getTimeValues().hours;
+
+          // Si falta más de 1 día, mostramos el texto fácil
+          if (dias > 0) {
+              timerDisplay.innerText = dias + " días, " + horas + " horas";
+          } else {
+              // Si falta menos de un día, mostramos el reloj normal
+              timerDisplay.innerText = detailTimer.getTimeValues().toString();
+          }
       });
     } else {
       timerDisplay.innerText = "FINALIZADA";

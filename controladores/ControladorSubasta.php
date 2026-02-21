@@ -12,13 +12,15 @@ require_once 'modelos/BaseDatos.php';
 require_once 'modelos/Obra.php';
 require_once 'modelos/Puja.php';
 
-class ControladorSubasta {
-    
+class ControladorSubasta
+{
+
     private $bd;
     private $modeloObra;
     private $modeloPuja;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->bd = BaseDatos::getInstance()->getConnection();
         $this->modeloObra = new Obra($this->bd);
         $this->modeloPuja = new Puja($this->bd);
@@ -27,9 +29,10 @@ class ControladorSubasta {
     /**
      * Devuelve el catálogo de obras activas en formato JSON.
      */
-    public function obtenerCatalogo() {
+    public function obtenerCatalogo()
+    {
         $catalogo = $this->modeloObra->obtenerCatalogoActivo();
-        
+
         header('Content-Type: application/json');
         echo json_encode($catalogo);
         exit();
@@ -38,7 +41,8 @@ class ControladorSubasta {
     /**
      * Procesa el formulario del Taller del Artista (Subida de imagen y datos de la obra).
      */
-    public function subirObra() {
+    public function subirObra()
+    {
         session_start();
         header('Content-Type: application/json');
 
@@ -49,10 +53,10 @@ class ControladorSubasta {
         }
 
         try {
-            $id_vendedor = $_SESSION['user_id']; 
+            $id_vendedor = $_SESSION['user_id'];
             $titulo = $_POST['titulo'];
             $desc = $_POST['descripcion'];
-            $precio = (float)$_POST['precio'];
+            $precio = (float) $_POST['precio'];
             $fecha_fin = $_POST['fecha_fin'];
 
             if (!isset($_FILES["imagen"]) || $_FILES["imagen"]["error"] !== 0) {
@@ -60,8 +64,8 @@ class ControladorSubasta {
             }
 
             $nombre_archivo = time() . "_" . preg_replace("/[^A-Z0-9._-]/i", "_", basename($_FILES["imagen"]["name"]));
-            
-            $ruta_fisica = "public/uploads/" . $nombre_archivo; 
+
+            $ruta_fisica = "public/uploads/" . $nombre_archivo;
             $ruta_base_datos = "uploads/" . $nombre_archivo;
 
             if (!is_dir('public/uploads/')) {
@@ -70,7 +74,7 @@ class ControladorSubasta {
 
             if (move_uploaded_file($_FILES["imagen"]["tmp_name"], $ruta_fisica)) {
                 $exito = $this->modeloObra->crearObra($id_vendedor, $titulo, $desc, $precio, $fecha_fin, $ruta_base_datos);
-                
+
                 if ($exito) {
                     echo json_encode(["success" => true, "message" => "Obra registrada. Pendiente de validación."]);
                 } else {
@@ -89,7 +93,8 @@ class ControladorSubasta {
     /**
      * Devuelve las obras en estado pendiente para la validación del Administrador.
      */
-    public function obtenerPendientes() {
+    public function obtenerPendientes()
+    {
         header('Content-Type: application/json');
         $pendientes = $this->modeloObra->obtenerPendientes();
         echo json_encode($pendientes);
@@ -99,10 +104,11 @@ class ControladorSubasta {
     /**
      * Cambia el estado de una obra a 'ACTIVA' tras la validación del Administrador.
      */
-   public function aprobarObra() {
+    public function aprobarObra()
+    {
         session_start();
         header('Content-Type: application/json');
-        
+
         // Blindaje: Comprobar que hay sesión y que el rol es 'admin'
         if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
             echo json_encode(["success" => false, "message" => "Acceso denegado. Se requiere rango de Senador."]);
@@ -110,7 +116,7 @@ class ControladorSubasta {
         }
 
         $datos = json_decode(file_get_contents("php://input"), true);
-        $id_obra = (int)$datos['id_obra'];
+        $id_obra = (int) $datos['id_obra'];
 
         $exito = $this->modeloObra->aprobarObra($id_obra);
 
@@ -125,25 +131,26 @@ class ControladorSubasta {
     /**
      * Devuelve los detalles de una obra específica junto con su historial de pujas.
      */
-    public function obtenerDetalleObra() {
+    public function obtenerDetalleObra()
+    {
         header('Content-Type: application/json');
-        
+
         $id_obra = $_GET['id'] ?? null;
         if (!$id_obra) {
-            echo json_encode(["error" => "Identificador de obra no proporcionado."]); 
+            echo json_encode(["error" => "Identificador de obra no proporcionado."]);
             exit();
         }
 
         $obra = $this->modeloObra->obtenerPorId($id_obra);
-        if (!$obra) { 
-            echo json_encode(["error" => "Obra no localizada en los registros."]); 
-            exit(); 
+        if (!$obra) {
+            echo json_encode(["error" => "Obra no localizada en los registros."]);
+            exit();
         }
 
         $historial = $this->modeloPuja->obtenerHistorialPorObra($id_obra);
 
-        $historial_formateado = array_map(function($h) {
-            $h['monto'] = (float)$h['monto'];
+        $historial_formateado = array_map(function ($h) {
+            $h['monto'] = (float) $h['monto'];
             return $h;
         }, $historial);
 
@@ -152,7 +159,7 @@ class ControladorSubasta {
             "titulo" => $obra['titulo'],
             "descripcion" => $obra['descripcion'],
             "imagen_url" => $obra['imagen_url'],
-            "precio_actual" => (float)$obra['precio_actual'],
+            "precio_actual" => (float) $obra['precio_actual'],
             "fecha_fin" => $obra['fecha_fin'],
             "biografia_artista" => $obra['biografia'] ?? "Sin biografía disponible.",
             "history" => $historial_formateado
@@ -163,53 +170,77 @@ class ControladorSubasta {
     /**
      * Inicia el proceso transaccional (ACID) para registrar una nueva puja.
      */
-    public function sellarTransaccion() {
+    public function sellarTransaccion()
+    {
         session_start();
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(["success" => false, "message" => "Autorización denegada. Sesión inactiva."]); 
+            echo json_encode(["success" => false, "message" => "Autorización denegada. Sesión inactiva."]);
             exit();
         }
 
         $datos = json_decode(file_get_contents("php://input"), true);
-        $id_obra = (int)$datos['id_obra'];
-        $monto_puja = (float)$datos['monto'];
+        $id_obra = (int) $datos['id_obra'];
+        $monto_puja = (float) $datos['monto'];
         $id_usuario = $_SESSION['user_id'];
         $ip_usuario = $_SERVER['REMOTE_ADDR'];
 
         $resultado = $this->modeloPuja->realizarPuja($id_obra, $id_usuario, $monto_puja, $ip_usuario);
-        
+
+        // Si la puja fue exitosa, borramos el caché para que el Ticker se actualice
+        if ($resultado['success'] === true) {
+            $archivo_cache = 'public/uploads/ticker_cache.json';
+            if (file_exists($archivo_cache)) {
+                unlink($archivo_cache); // Elimina el archivo
+            }
+        }
+
         echo json_encode($resultado);
         exit();
     }
 
     /**
-     * Provee los datos de las últimas transacciones globales para el componente visual del ticker.
+     * Provee los datos del Ticker. OPTIMIZADO con Caché de Archivo.
      */
-    public function obtenerTickerGlobal() {
+    public function obtenerTickerGlobal()
+    {
         header('Content-Type: application/json');
-        
+        $archivo_cache = 'public/uploads/ticker_cache.json'; // Usamos la carpeta uploads que ya existe
+
+        // 1. Si el archivo caché existe, lo enviamos directamente ¡CERO consultas a la BD!
+        if (file_exists($archivo_cache)) {
+            echo file_get_contents($archivo_cache);
+            exit();
+        }
+
+        // 2. Si no existe (porque es la primera vez o hubo una puja nueva), consultamos a la BD
         $pujas = $this->modeloPuja->obtenerTickerGlobal();
-        
-        $pujas = array_map(function($p) {
-            $p['monto'] = (float)$p['monto'];
+
+        $pujas = array_map(function ($p) {
+            $p['monto'] = (float) $p['monto'];
             return $p;
         }, $pujas);
 
-        echo json_encode($pujas);
+        $json_pujas = json_encode($pujas);
+
+        // 3. Guardamos el resultado en el archivo para que el próximo usuario lo lea de ahí
+        file_put_contents($archivo_cache, $json_pujas);
+
+        echo $json_pujas;
         exit();
     }
 
-/**
+    /**
      * Devuelve los datos del Taller para los Artistas.
      */
-    public function obtenerTaller() {
+    public function obtenerTaller()
+    {
         session_start();
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(["error" => "Identificación requerida."]); 
+            echo json_encode(["error" => "Identificación requerida."]);
             exit();
         }
 
@@ -221,12 +252,13 @@ class ControladorSubasta {
     /**
      * Devuelve las posiciones activas en la Bóveda del Mecenas.
      */
-    public function obtenerMisPujas() {
+    public function obtenerMisPujas()
+    {
         session_start();
         header('Content-Type: application/json');
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode([]); 
+            echo json_encode([]);
             exit();
         }
 

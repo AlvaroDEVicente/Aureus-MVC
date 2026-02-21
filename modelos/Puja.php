@@ -7,11 +7,13 @@
  * asegurando la consistencia del libro mayor y evitando Race Conditions.
  */
 
-class Puja {
-    
+class Puja
+{
+
     private $db;
 
-    public function __construct($conexion) {
+    public function __construct($conexion)
+    {
         $this->db = $conexion;
     }
 
@@ -19,8 +21,9 @@ class Puja {
      * MOTOR TRANSACCIONAL ACID: Procesa una puja de forma segura.
      * Sustituye a vuestro antiguo 'api/place_bid.php'
      */
-    public function realizarPuja($id_obra, $id_usuario, $monto_puja, $ip_usuario) {
-        
+    public function realizarPuja($id_obra, $id_usuario, $monto_puja, $ip_usuario)
+    {
+
         // INICIO TRANSACCIÓN ACID
         // Apagamos el auto-guardado. A partir de aquí, si algo falla, nada se guarda.
         $this->db->begin_transaction();
@@ -71,14 +74,20 @@ class Puja {
             // PASO 5: Congelación de fondos del nuevo pujador ganador
             $nuevo_disponible = $user_bd['saldo_disponible'] - $monto_puja;
             $nuevo_bloqueado = $user_bd['saldo_bloqueado'] + $monto_puja;
-            
+
             $sql_cobro = "UPDATE usuario SET saldo_disponible = ?, saldo_bloqueado = ? WHERE id_usuario = ?";
             $stmt_cobro = $this->db->prepare($sql_cobro);
             $stmt_cobro->bind_param("ddi", $nuevo_disponible, $nuevo_bloqueado, $id_usuario);
             $stmt_cobro->execute();
 
-            // PASO 6: Actualización de la cotización de la obra
-            $sql_update_obra = "UPDATE obra SET precio_actual = ? WHERE id_obra = ?";
+            // PASO 6: Actualización de la cotización y SISTEMA ANTI-SNIPING (Vía SQL)
+            // Actualizamos el precio. Además, si a la fecha_fin le quedan menos de 5 minutos,
+            // MySQL automáticamente le suma 5 minutos desde este momento exacto.
+            $sql_update_obra = "UPDATE obra 
+                                SET precio_actual = ?, 
+                                    fecha_fin = IF(fecha_fin < DATE_ADD(NOW(), INTERVAL 5 MINUTE), DATE_ADD(NOW(), INTERVAL 5 MINUTE), fecha_fin) 
+                                WHERE id_obra = ?";
+
             $stmt_update_obra = $this->db->prepare($sql_update_obra);
             $stmt_update_obra->bind_param("di", $monto_puja, $id_obra);
             $stmt_update_obra->execute();
@@ -120,7 +129,8 @@ class Puja {
      * Ticker Global: Devuelve las últimas 10 pujas de toda la plataforma.
      * Sustituye a 'api/get_global_bids.php'
      */
-    public function obtenerTickerGlobal() {
+    public function obtenerTickerGlobal()
+    {
         $sql = "SELECT o.titulo AS titulo_obra, u.nombre AS nombre_usuario, p.monto, p.fecha
                 FROM puja p
                 INNER JOIN obra o ON p.id_obra = o.id_obra
@@ -135,24 +145,26 @@ class Puja {
      * Historial de una obra: Devuelve todas las pujas de una obra concreta.
      * Es la segunda parte de vuestro antiguo 'api/get_artwork.php'
      */
-    public function obtenerHistorialPorObra($id_obra) {
+    public function obtenerHistorialPorObra($id_obra)
+    {
         $sql = "SELECT u.nombre AS nombre_usuario, p.monto, p.fecha 
                 FROM puja p 
                 JOIN usuario u ON p.id_usuario = u.id_usuario 
                 WHERE p.id_obra = ? 
                 ORDER BY p.monto DESC";
-                
+
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id_obra);
         $stmt->execute();
-        
+
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     /**
      * Obtiene las pujas activas de un usuario para su Bóveda Personal.
      */
-    public function obtenerPujasMecenas($id_usuario) {
+    public function obtenerPujasMecenas($id_usuario)
+    {
         $sql = "SELECT o.titulo, o.precio_actual, o.fecha_fin,
                        MAX(p.monto) as mi_monto,
                        IF(MAX(p.monto) >= o.precio_actual, 'Ganando', 'Superado') as estado_puja
@@ -165,7 +177,7 @@ class Puja {
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id_usuario);
         $stmt->execute();
-        
+
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }
