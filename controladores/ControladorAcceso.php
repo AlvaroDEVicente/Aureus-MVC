@@ -1,0 +1,138 @@
+<?php
+/**
+ * AUREUS - Proyecto Intermodular
+ * Capa: CONTROLADOR (Lógica de Negocio)
+ * Archivo: controladores/ControladorAcceso.php
+ * Descripción: Orquesta las acciones de autenticación (Login/Logout).
+ * Actúa como intermediario entre la vista (formularios) y el modelo (base de datos).
+ */
+
+// Importamos el "Músculo" que este "Cerebro" va a necesitar
+require_once 'modelos/BaseDatos.php';
+require_once 'modelos/Usuario.php';
+
+class ControladorAcceso {
+    
+    // Propiedades para guardar nuestras herramientas
+    private $bd;
+    private $modeloUsuario;
+
+    /**
+     * El constructor prepara el terreno cada vez que el enrutador llama a este controlador.
+     */
+    public function __construct() {
+        // Pedimos la conexión única (Singleton) a nuestra Base de Datos
+        $this->bd = BaseDatos::getInstance()->getConnection();
+        
+        // Creamos una instancia de nuestro modelo de Usuario, dándole la conexión
+        $this->modeloUsuario = new Usuario($this->bd);
+    }
+
+    /**
+     * Procesa la petición POST del formulario login.php
+     */
+    public function procesarLogin() {
+        // 1. Recogemos los datos que envía el usuario (El "Qué")
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        // 2. Le pedimos al modelo que haga el trabajo sucio (El "Cómo")
+        $usuario = $this->modeloUsuario->login($email, $password);
+
+        // 3. Tomamos la decisión basándonos en la respuesta del modelo (El "Flujo")
+        if ($usuario) {
+            // Login correcto: Iniciamos la sesión de PHP y guardamos las credenciales
+            session_start();
+            $_SESSION['user_id'] = $usuario['id'];
+            $_SESSION['user_nombre'] = $usuario['nombre'];
+            $_SESSION['user_rol'] = $usuario['rol'];
+
+            // Redirigimos al usuario a la zona VIP (Nuestra SPA)
+            header("Location: public/index.html");
+            exit();
+        } else {
+            // Login incorrecto: Lo devolvemos a la puerta con un aviso
+            header("Location: public/login.php?error=1");
+            exit();
+        }
+    }
+
+    /**
+     * Destruye la sesión actual y devuelve al usuario a la pantalla de acceso.
+     */
+    public function cerrarSesion() {
+        session_start();
+        session_destroy();
+        
+        // Redirigimos al login con un mensaje de éxito
+        header("Location: public/login.php?msg=sesion_cerrada");
+        exit();
+    }
+
+    /**
+     * Devuelve los datos de sesión y saldos al Frontend.
+     */
+    public function obtenerUsuario() {
+        session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(["error" => "No autorizado"]); 
+            exit();
+        }
+
+        $datos = $this->modeloUsuario->obtenerPorId($_SESSION['user_id']);
+        echo json_encode($datos);
+        exit();
+    }
+
+    /**
+     * Procesa la recarga de saldo de un Mecenas.
+     */
+    public function ingresarFondos() {
+        session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(["success" => false, "message" => "Sesión no válida"]);
+            exit();
+        }
+
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $monto = (float)$datos['monto'];
+
+        if ($monto <= 0) {
+            echo json_encode(["success" => false, "message" => "Cuantía inválida."]);
+            exit();
+        }
+
+        $exito = $this->modeloUsuario->actualizarFondos($_SESSION['user_id'], $monto);
+        
+        echo json_encode(["success" => $exito]);
+        exit();
+    }
+
+    /**
+     * Procesa la solicitud POST del formulario de registro.
+     */
+    public function procesarRegistro() {
+        $nombre = $_POST['nombre'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+        $rol = $_POST['rol'] ?? 'comprador';
+        $dni = $_POST['dni'] ?? '';
+        $telefono = $_POST['telefono'] ?? '';
+
+        $exito = $this->modeloUsuario->registrarUsuario($nombre, $email, $password, $rol, $dni, $telefono);
+
+        if ($exito) {
+            // Redirigimos al login con mensaje de éxito
+            header("Location: public/login.php?registro=exito");
+        } else {
+            // Redirigimos al registro con mensaje de error (email duplicado)
+            header("Location: public/registro.php?error=duplicado");
+        }
+        exit();
+    }
+}
+?>

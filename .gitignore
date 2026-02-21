@@ -1,0 +1,7 @@
+# Ignorar las imágenes subidas por los usuarios
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Ignorar archivos del sistema operativo
+.DS_Store
+Thumbs.db

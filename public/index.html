@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AUREUS | Plataforma de Subastas Exclusivas</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/easytimer@1.1.3/dist/easytimer.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+    <link
+      href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <header class="navbar-glass">
+      <div class="header-container">
+        <div class="brand-nav">
+          <h1 style="margin: 0">AUREUS</h1>
+          <nav class="main-menu">
+            <button
+              id="nav-catalog-btn"
+              onclick="showCatalog()"
+              class="nav-link active"
+            >
+              Subastas en Curso
+            </button>
+            <button
+              id="nav-workshop-btn"
+              onclick="showWorkshop()"
+              class="nav-link"
+              style="display: none"
+            >
+              Taller del Artista
+            </button>
+            <button
+              id="nav-admin-btn"
+              onclick="showAdmin()"
+              class="nav-link"
+              style="display: none"
+            >
+              Mesa del Senado (Admin)
+            </button>
+            <button
+              id="nav-vault-btn"
+              onclick="showVault()"
+              class="nav-link"
+              style="display: none"
+            >
+              Mi Bóveda
+            </button>
+          </nav>
+        </div>
+
+        <div id="user-info" class="user-panel">
+          <p style="margin: 0 0 5px 0">
+            Mecenas:
+            <strong id="nav-username" class="text-gold">Cargando...</strong>
+          </p>
+          <div class="balances">
+            <p style="margin: 0">
+              Disponible:
+              <span id="nav-saldo-disponible" class="text-gold">...</span> €
+            </p>
+            <p style="margin: 0">
+              Bloqueado:
+              <span id="nav-saldo-bloqueado" class="text-muted">...</span> €
+            </p>
+          </div>
+          <button
+            onclick="logout()"
+            class="btn-text text-muted"
+            style="
+              margin-top: 5px;
+              font-size: 0.8rem;
+              border-bottom: 1px solid #888;
+            "
+          >
+            Abandonar Sesión
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="view-catalog" class="container">
+      <div class="catalog-layout mt-4">
+        <aside class="filters-sidebar">
+          <h3
+            class="text-gold mb-4"
+            style="
+              font-size: 1.2rem;
+              border-bottom: 1px solid var(--border);
+              padding-bottom: 10px;
+            "
+          >
+            Criterios de Búsqueda
+          </h3>
+          <div class="filter-group mb-4">
+            <h4 class="text-muted small mb-3">Presupuesto del Mecenas</h4>
+            <div id="slider-precio"></div>
+            <div
+              class="precio-valores"
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-top: 15px;
+              "
+            >
+              <span class="precio-min text-muted small" id="precio-min-label"
+                >0 €</span
+              >
+              <span class="precio-max text-muted small" id="precio-max-label"
+                >... €</span
+              >
+            </div>
+            <div
+              id="filtro-contador"
+              class="text-gold small mt-2 font-monospace"
+            >
+              Calculando obras...
+            </div>
+          </div>
+          <div class="filter-group">
+            <h4 class="text-muted small mb-2">Disciplina Artística</h4>
+            <select id="filter-category" class="form-control">
+              <option value="todas">Todas las disciplinas</option>
+              <option value="pintura">Pintura</option>
+              <option value="escultura">Escultura</option>
+            </select>
+            <small class="text-danger mt-2 d-block" style="font-size: 0.75rem"
+              >* Próximamente activo</small
+            >
+          </div>
+        </aside>
+
+        <div class="catalog-content">
+          <h2 class="section-title mb-4" style="margin-top: 0">
+            Catálogo Imperial
+          </h2>
+          <div id="catalog-container" class="grid-catalog"></div>
+          <div
+            class="global-activity-panel mt-4 pt-4"
+            style="border-top: 1px solid var(--border)"
+          >
+            <h3 class="text-gold" style="font-size: 1.1rem">
+              Últimos Movimientos en la Bóveda
+            </h3>
+            <div id="global-bids-table" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <template id="artwork-card-template">
+        <article class="card-auction">
+          <div class="card-img-wrapper">
+            <img class="card-image" src="" alt="Obra de Arte" />
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">Título de la Obra</h3>
+            <p class="price-row">
+              Puja Actual:
+              <strong class="card-precio-actual text-gold">0</strong> €
+            </p>
+            <div class="timer-container mt-3 mb-3">
+              <span class="text-muted small">Cierre en:</span>
+              <div class="countdown-display text-gold font-monospace">
+                --:--:--
+              </div>
+            </div>
+            <button class="card-btn btn-gold w-100" data-id="">
+              Inspeccionar Lote
+            </button>
+          </div>
+        </article>
+      </template>
+    </main>
+
+    <section id="view-detail" class="container" style="display: none">
+      <button onclick="showCatalog()" class="btn-text mb-4">
+        ← Retornar al Catálogo
+      </button>
+      <div class="detail-grid">
+        <div class="detail-info">
+          <h2 id="detail-title" class="text-gold">Cargando...</h2>
+          <img
+            id="detail-image"
+            class="detail-main-img"
+            src=""
+            alt="Obra en detalle"
+          />
+          <div class="info-box mt-3">
+            <h3>Certificación de Autenticidad</h3>
+            <p id="detail-desc">...</p>
+            <hr />
+            <h3>Perfil del Artista</h3>
+            <p id="detail-bio" class="text-muted">...</p>
+          </div>
+        </div>
+
+        <div class="detail-action">
+          <div class="bid-panel">
+            <h3>Mesa de Negociación</h3>
+            <div
+              id="detail-timer"
+              class="text-danger font-monospace mb-2"
+              style="font-size: 1.2rem"
+            >
+              --:--:--
+            </div>
+            <p class="current-bid">
+              Valor a Batir:
+              <strong id="current-precio-actual" class="text-gold">0</strong> €
+            </p>
+            <form id="bid-form">
+              <input type="hidden" id="input-id-obra" value="" />
+              <label for="input-monto" class="text-muted"
+                >Oferta en firme (€):</label
+              >
+              <input
+                type="number"
+                id="input-monto"
+                required
+                step="0.01"
+                class="form-control mb-3"
+              />
+              <button type="submit" id="btn-submit-bid" class="btn-gold w-100">
+                Sellar Transacción
+              </button>
+            </form>
+            <div id="bid-feedback" class="feedback-msg"></div>
+          </div>
+          <div
+            class="chart-panel mt-4 border border-secondary p-3"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold" style="font-size: 1.1rem">
+              Evolución del Valor
+            </h3>
+            <canvas id="price-chart" height="200"></canvas>
+          </div>
+          <div class="history-panel mt-4">
+            <h3 class="text-gold" style="font-size: 1.1rem">
+              Libro de Registros
+            </h3>
+            <div id="artwork-bids-table"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-workshop" class="container" style="display: none">
+      <h2 class="section-title">El Taller del Artista</h2>
+      <p class="text-muted mb-4">
+        Gestión de inventario, forja de nuevas obras y análisis de mercado.
+      </p>
+      <div
+        id="workshop-content"
+        class="border border-secondary p-4"
+        style="background: var(--dark-gray); border-radius: 8px"
+      ></div>
+
+      <template id="form-subir-obra-template">
+        <div class="form-container-fade-in">
+          <h3 class="text-gold mb-4">Aportar Nuevo Lote a la Bóveda</h3>
+          <form id="form-nueva-obra" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="text-muted small">Título de la Obra</label>
+              <input
+                type="text"
+                name="titulo"
+                class="form-control"
+                required
+                placeholder="Ej. El Ocaso de Adriano"
+              />
+            </div>
+            <div class="mb-3">
+              <label class="text-muted small"
+                >Descripción y Certificaciones</label
+              >
+              <textarea
+                name="descripcion"
+                class="form-control"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+            <div class="row" style="display: flex; gap: 1rem">
+              <div class="col" style="flex: 1">
+                <label class="text-muted small">Precio Salida (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  name="precio"
+                  class="form-control"
+                  required
+                />
+              </div>
+              <div class="col" style="flex: 1">
+                <label class="text-muted small">Fecha Cierre</label>
+                <input
+                  type="datetime-local"
+                  name="fecha_fin"
+                  class="form-control"
+                  required
+                />
+              </div>
+            </div>
+            <div class="mb-4 mt-3">
+              <label class="text-muted small"
+                >Imagen de la Obra (JPG/PNG/WEBP)</label
+              >
+              <input
+                type="file"
+                name="imagen"
+                class="form-control"
+                accept="image/*"
+                required
+              />
+            </div>
+            <div style="display: flex; gap: 10px">
+              <button type="submit" class="btn-gold" style="flex: 2">
+                Publicar en Bóveda
+              </button>
+              <button
+                type="button"
+                onclick="loadWorkshopData()"
+                class="btn-outline"
+                style="flex: 1"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+          <div id="upload-feedback" class="mt-3 font-monospace small"></div>
+        </div>
+      </template>
+    </section>
+
+    <section id="view-vault" class="container" style="display: none">
+      <div
+        class="vault-header d-flex justify-content-between align-items-center mb-4"
+      >
+        <div>
+          <h2 class="section-title mb-0">Mi Bóveda Personal</h2>
+          <p class="text-muted">
+            Gestión de activos y registro de licitaciones.
+          </p>
+        </div>
+        <button onclick="openDepositModal()" class="btn-gold">
+          <i class="fa-solid fa-plus"></i> Ingresar Fondos
+        </button>
+      </div>
+      <div class="row" style="display: flex; gap: 20px">
+        <div style="flex: 1">
+          <div class="card-auction p-4 h-100">
+            <h3 class="text-gold h5">Estado de Cuenta</h3>
+            <hr class="border-secondary" />
+            <div class="d-flex justify-content-between mb-2">
+              <span>Saldo Total:</span
+              ><span id="vault-total" class="fw-bold">0.00 €</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>En Pujas (Bloqueado):</span
+              ><span id="vault-blocked" class="text-muted">0.00 €</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Disponible:</span
+              ><span id="vault-available" class="text-gold fw-bold"
+                >0.00 €</span
+              >
+            </div>
+          </div>
+        </div>
+        <div style="flex: 2">
+          <div class="card-auction p-4 h-100">
+            <h3 class="text-gold h5">Mis Pujas en Curso</h3>
+            <div id="vault-bids-table"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-admin" class="container" style="display: none">
+      <h2 class="section-title">Mesa del Senado</h2>
+      <p class="text-muted mb-4">
+        Validación de lotes pendientes y supervisión de la plataforma.
+      </p>
+      <div
+        id="admin-content"
+        class="border border-secondary p-4"
+        style="background: var(--dark-gray); border-radius: 8px"
+      >
+        <h3 class="text-gold mb-3">Obras Pendientes de Revisión</h3>
+        <div id="admin-pending-table"></div>
+      </div>
+    </section>
+
+    <div
+      id="modal-deposit"
+      class="modal-overlay"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        class="modal-content card-auction p-4"
+        style="max-width: 400px; width: 90%"
+      >
+        <h3 class="text-gold mb-3">Aumentar Capital</h3>
+        <p class="text-muted small mb-4">
+          Ingrese la cuantía que desea transferir a su cuenta de mecenazgo.
+        </p>
+        <form id="form-deposit">
+          <div class="mb-4">
+            <label class="text-muted small d-block mb-2">Cuantía (€)</label>
+            <input
+              type="number"
+              id="deposit-amount"
+              class="form-control"
+              placeholder="0.00"
+              min="10"
+              step="10"
+              required
+            />
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn-gold w-100">
+              Confirmar Transferencia
+            </button>
+            <button
+              type="button"
+              onclick="closeDepositModal()"
+              class="btn-outline"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="js/script.js"></script>
+  </body>
+</html>
