@@ -38,8 +38,9 @@ class ControladorSubasta
         exit();
     }
 
-    /**
+   /**
      * Procesa el formulario del Taller del Artista (Subida de imagen y datos de la obra).
+     * VERSIÓN BLINDADA CONTRA RCE.
      */
     public function subirObra()
     {
@@ -59,29 +60,63 @@ class ControladorSubasta
             $precio = (float) $_POST['precio'];
             $fecha_fin = $_POST['fecha_fin'];
 
-            if (!isset($_FILES["imagen"]) || $_FILES["imagen"]["error"] !== 0) {
-                throw new Exception("El archivo de imagen es obligatorio.");
+            // 1. Verificar si el archivo llegó y no hay errores a nivel de PHP
+            if (!isset($_FILES["imagen"]) || $_FILES["imagen"]["error"] !== UPLOAD_ERR_OK) {
+                throw new Exception("El archivo de imagen es obligatorio o la subida falló.");
             }
 
-            $nombre_archivo = time() . "_" . preg_replace("/[^A-Z0-9._-]/i", "_", basename($_FILES["imagen"]["name"]));
+            $archivo_tmp = $_FILES["imagen"]["tmp_name"];
+
+            // 2. Límite de peso: 5MB (5 * 1024 * 1024 bytes)
+            $peso_maximo = 5242880; 
+            if ($_FILES["imagen"]["size"] > $peso_maximo) {
+                throw new Exception("La obra es demasiado pesada. El límite de la bóveda es de 5MB.");
+            }
+
+            // 3. Inspección MIME (El núcleo de la seguridad)
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime_real = finfo_file($finfo, $archivo_tmp);
+            finfo_close($finfo);
+
+            // 4. Lista blanca de formatos permitidos y asignación de extensión segura
+            $formatos_permitidos = [
+                'image/jpeg' => 'jpg',
+                'image/png'  => 'png',
+                'image/webp' => 'webp'
+            ];
+
+            if (!array_key_exists($mime_real, $formatos_permitidos)) {
+                throw new Exception("Formato no válido. Solo se admiten lienzos en JPG, PNG o WEBP.");
+            }
+
+            $extension_segura = $formatos_permitidos[$mime_real];
+
+            // 5. Generación de nombre único y seguro
+            // Ejemplo de salida: aureus_65e4a3b2c1d4e5.12345678.jpg
+            $nombre_archivo = uniqid('aureus_', true) . '.' . $extension_segura;
 
             $ruta_fisica = "public/uploads/" . $nombre_archivo;
-            $ruta_base_datos = "uploads/" . $nombre_archivo;
+            $ruta_base_datos = "uploads/" . $nombre_archivo; // La ruta que leerá el frontend
 
             if (!is_dir('public/uploads/')) {
                 mkdir('public/uploads/', 0777, true);
             }
 
-            if (move_uploaded_file($_FILES["imagen"]["tmp_name"], $ruta_fisica)) {
+            // 6. Movimiento físico y registro en la base de datos
+            if (move_uploaded_file($archivo_tmp, $ruta_fisica)) {
+                
+                // Llamamos a nuestro modelo para guardar el registro
                 $exito = $this->modeloObra->crearObra($id_vendedor, $titulo, $desc, $precio, $fecha_fin, $ruta_base_datos);
 
                 if ($exito) {
-                    echo json_encode(["success" => true, "message" => "Obra registrada. Pendiente de validación."]);
+                    echo json_encode(["success" => true, "message" => "Obra registrada. Pendiente de validación por el Senado."]);
                 } else {
-                    throw new Exception("Error interno al registrar la obra en la base de datos.");
+                    // Si la BD falla, borramos el archivo huérfano por limpieza
+                    unlink($ruta_fisica);
+                    throw new Exception("Error interno al registrar la obra en el libro mayor.");
                 }
             } else {
-                throw new Exception("Error del sistema al almacenar el archivo físico.");
+                throw new Exception("Error del sistema al almacenar el archivo físico en la bóveda.");
             }
 
         } catch (Exception $e) {
