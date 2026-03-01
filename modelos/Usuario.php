@@ -111,8 +111,12 @@ class Usuario {
 /**
      * PANEL ADMIN: Obtiene la lista completa de usuarios.
      */
+/**
+     * PANEL ADMIN: Obtiene la lista completa de usuarios.
+     */
     public function obtenerTodos() {
-        $sql = "SELECT id_usuario, nombre, email, rol, saldo_disponible, fecha_registro FROM usuario ORDER BY fecha_registro DESC";
+        // AÑADIDA LA COLUMNA 'activo' A LA CONSULTA SQL
+        $sql = "SELECT id_usuario, nombre, email, rol, saldo_disponible, activo, fecha_registro FROM usuario ORDER BY fecha_registro DESC";
         $resultado = $this->db->query($sql);
         return $resultado->fetch_all(MYSQLI_ASSOC);
     }

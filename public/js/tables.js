@@ -98,7 +98,19 @@ export const tablas = {
       layout: "fitColumns",
       columns: [
         { title: "ID", field: "id_usuario", width: 60 },
-        { title: "Nombre", field: "nombre", widthGrow: 2 },
+        {
+          title: "Nombre",
+          field: "nombre",
+          widthGrow: 2,
+          // Formateador dinámico: Si está baneado, lo tachamos y le ponemos insignia
+          formatter: (cell) => {
+            const usuario = cell.getData();
+            if (usuario.activo == 0) {
+              return `<span class="text-danger text-decoration-line-through">${usuario.nombre}</span> <span class="badge bg-danger ms-2">Desterrado</span>`;
+            }
+            return usuario.nombre;
+          },
+        },
         { title: "Email", field: "email", widthGrow: 2 },
         {
           title: "Saldo",
@@ -120,14 +132,24 @@ export const tablas = {
           },
           cellEdited: (cell) => cbCambioRol(cell.getData()),
         },
-        // ¡Evento nativo para borrar!
         {
           title: "Expulsar",
-          formatter: () =>
-            `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Borrar</button>`,
+          // Formateador: Si ya está baneado, quitamos el botón
+          formatter: (cell) => {
+            const usuario = cell.getData();
+            if (usuario.activo == 0) {
+              return `<span class="text-muted small">Inhabilitado</span>`;
+            }
+            return `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Borrar</button>`;
+          },
           hozAlign: "center",
           headerSort: false,
-          cellClick: (e, cell) => cbBorrar(cell.getData().id_usuario),
+          // Evento: Solo lanzamos el borrado si está activo
+          cellClick: (e, cell) => {
+            if (cell.getData().activo != 0) {
+              cbBorrar(cell.getData().id_usuario);
+            }
+          },
         },
       ],
     }),

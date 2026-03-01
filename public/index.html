@@ -12,147 +12,200 @@
       rel="stylesheet"
     />
 
-    <script src="https://cdn.jsdelivr.net/npm/easytimer@1.1.3/dist/easytimer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css"
       rel="stylesheet"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
     <link
       href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css"
       rel="stylesheet"
     />
-    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link rel="stylesheet" href="css/estilos.css" />
   </head>
   <body>
-    <header class="navbar-glass">
-      <div class="header-container">
-        <div class="brand-nav">
-          <h1 style="margin: 0">AUREUS</h1>
-          <nav class="main-menu">
+    <header class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+      <div class="container-fluid px-4">
+        <a
+          class="navbar-brand text-gold fs-3"
+          href="#"
+          style="font-family: &quot;Cinzel&quot;, serif"
+          >AUREUS</a
+        >
+
+        <button
+          class="navbar-toggler border-gold"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#menuPrincipal"
+          aria-controls="menuPrincipal"
+          aria-expanded="false"
+          aria-label="Alternar navegación"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <nav class="navbar-nav me-auto mb-2 mb-lg-0">
             <button
               id="nav-catalog-btn"
               onclick="showCatalog()"
-              class="nav-link active"
+              class="nav-link active btn-text"
             >
-              Subastas en Curso
+              Subastas
             </button>
             <button
               id="nav-workshop-btn"
               onclick="showWorkshop()"
-              class="nav-link"
+              class="nav-link btn-text"
               style="display: none"
             >
-              Taller del Artista
+              Taller
             </button>
             <button
               id="nav-admin-btn"
               onclick="showAdmin()"
-              class="nav-link"
+              class="nav-link btn-text"
               style="display: none"
             >
-              Mesa del Senado (Admin)
+              Senado
             </button>
             <button
               id="nav-vault-btn"
               onclick="showVault()"
-              class="nav-link"
+              class="nav-link btn-text"
               style="display: none"
             >
-              Mi Bóveda
+              Bóveda
             </button>
           </nav>
-        </div>
 
-        <div id="user-info" class="user-panel">
-          <p style="margin: 0 0 5px 0">
-            Mecenas:
-            <strong id="nav-username" class="text-gold">Cargando...</strong>
-          </p>
-          <div class="balances">
-            <p style="margin: 0">
-              Disponible:
-              <span id="nav-saldo-disponible" class="text-gold">...</span> €
-            </p>
-            <p style="margin: 0">
-              Bloqueado:
-              <span id="nav-saldo-bloqueado" class="text-muted">...</span> €
-            </p>
-          </div>
-          <button
-            onclick="logout()"
-            class="btn-text text-muted"
-            style="
-              margin-top: 5px;
-              font-size: 0.8rem;
-              border-bottom: 1px solid #888;
-            "
+          <div
+            class="user-panel d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-3 mt-lg-0"
           >
-            Abandonar Sesión
-          </button>
+            <div
+              id="user-balances"
+              class="text-start text-lg-end d-none d-lg-block"
+            >
+              <div class="small">
+                Disponible:
+                <span id="nav-saldo-disponible" class="text-gold fw-bold"
+                  >...</span
+                >
+                €
+              </div>
+              <div class="small text-muted">
+                Bloqueado: <span id="nav-saldo-bloqueado">...</span> €
+              </div>
+            </div>
+
+            <div class="dropdown">
+              <button
+                class="btn btn-outline-secondary dropdown-toggle text-gold w-100"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i class="fa-solid fa-user"></i>
+                <span id="nav-username">Cargando...</span>
+              </button>
+              <ul
+                class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-secondary"
+              >
+                <li>
+                  <button class="dropdown-item" onclick="showProfile()">
+                    <i class="fa-solid fa-id-card"></i> Mi Perfil
+                  </button>
+                </li>
+                <li><hr class="dropdown-divider border-secondary" /></li>
+                <li>
+                  <button class="dropdown-item text-danger" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </header>
 
-    <main id="view-catalog" class="container">
-      <div class="catalog-layout mt-4">
-        <aside class="filters-sidebar">
-          <h3
-            class="text-gold mb-4"
-            style="
-              font-size: 1.2rem;
-              border-bottom: 1px solid var(--border);
-              padding-bottom: 10px;
-            "
+    <main id="view-catalog" class="container mt-4">
+      <div class="row">
+        <aside class="col-lg-3 mb-4">
+          <div
+            class="filters-sidebar p-3 border border-secondary rounded"
+            style="background: var(--dark-gray); position: sticky; top: 100px"
           >
-            Criterios de Búsqueda
-          </h3>
-          <div class="filter-group mb-4">
-            <h4 class="text-muted small mb-3">Presupuesto del Mecenas</h4>
-            <div id="slider-precio"></div>
-            <div
-              class="precio-valores"
+            <h3
+              class="text-gold mb-4"
               style="
-                display: flex;
-                justify-content: space-between;
-                margin-top: 15px;
+                font-size: 1.2rem;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 10px;
               "
             >
-              <span class="precio-min text-muted small" id="precio-min-label"
-                >0 €</span
+              Criterios de Búsqueda
+            </h3>
+            <div class="filter-group mb-4">
+              <h4 class="text-muted small mb-3">Presupuesto del Mecenas</h4>
+              <div id="slider-precio"></div>
+              <div
+                class="precio-valores"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-top: 15px;
+                "
               >
-              <span class="precio-max text-muted small" id="precio-max-label"
-                >... €</span
+                <span class="precio-min text-muted small" id="precio-min-label"
+                  >0 €</span
+                >
+                <span class="precio-max text-muted small" id="precio-max-label"
+                  >... €</span
+                >
+              </div>
+              <div
+                id="filtro-contador"
+                class="text-gold small mt-2 font-monospace"
+              >
+                Calculando obras...
+              </div>
+            </div>
+            <div class="filter-group">
+              <h4 class="text-muted small mb-2">Disciplina Artística</h4>
+              <select
+                id="filter-category"
+                class="form-select bg-dark text-light border-secondary"
+              >
+                <option value="todas">Todas las disciplinas</option>
+                <option value="pintura">Pintura</option>
+                <option value="escultura">Escultura</option>
+              </select>
+              <small class="text-danger mt-2 d-block" style="font-size: 0.75rem"
+                >* Próximamente activo</small
               >
             </div>
-            <div
-              id="filtro-contador"
-              class="text-gold small mt-2 font-monospace"
-            >
-              Calculando obras...
-            </div>
-          </div>
-          <div class="filter-group">
-            <h4 class="text-muted small mb-2">Disciplina Artística</h4>
-            <select id="filter-category" class="form-control">
-              <option value="todas">Todas las disciplinas</option>
-              <option value="pintura">Pintura</option>
-              <option value="escultura">Escultura</option>
-            </select>
-            <small class="text-danger mt-2 d-block" style="font-size: 0.75rem"
-              >* Próximamente activo</small
-            >
           </div>
         </aside>
 
-        <div class="catalog-content">
+        <div class="col-lg-9">
           <h2 class="section-title mb-4" style="margin-top: 0">
             Catálogo Imperial
           </h2>
           <div id="catalog-container" class="grid-catalog"></div>
+
           <div
             class="global-activity-panel mt-4 pt-4"
             style="border-top: 1px solid var(--border)"
@@ -190,31 +243,40 @@
       </template>
     </main>
 
-    <section id="view-detail" class="container" style="display: none">
-      <button onclick="showCatalog()" class="btn-text mb-4">
+    <section id="view-detail" class="container mt-4" style="display: none">
+      <button
+        onclick="showCatalog()"
+        class="btn btn-outline-secondary text-gold mb-4 border-secondary"
+      >
         ← Retornar al Catálogo
       </button>
-      <div class="detail-grid">
-        <div class="detail-info">
+      <div class="row">
+        <div class="col-lg-8 mb-4 detail-info">
           <h2 id="detail-title" class="text-gold">Cargando...</h2>
           <img
             id="detail-image"
-            class="detail-main-img"
+            class="detail-main-img img-fluid"
             src=""
             alt="Obra en detalle"
           />
-          <div class="info-box mt-3">
-            <h3>Certificación de Autenticidad</h3>
-            <p id="detail-desc">...</p>
-            <hr />
-            <h3>Perfil del Artista</h3>
+          <div
+            class="info-box mt-3 p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="h5 text-gold">Certificación de Autenticidad</h3>
+            <p id="detail-desc" class="text-light">...</p>
+            <hr class="border-secondary" />
+            <h3 class="h5 text-gold">Perfil del Artista</h3>
             <p id="detail-bio" class="text-muted">...</p>
           </div>
         </div>
 
-        <div class="detail-action">
-          <div class="bid-panel">
-            <h3>Mesa de Negociación</h3>
+        <div class="col-lg-4 detail-action">
+          <div
+            class="bid-panel p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="h5 text-gold">Mesa de Negociación</h3>
             <div
               id="detail-timer"
               class="text-danger font-monospace mb-2"
@@ -228,7 +290,7 @@
             </p>
             <form id="bid-form">
               <input type="hidden" id="input-id-obra" value="" />
-              <label for="input-monto" class="text-muted"
+              <label for="input-monto" class="text-muted mb-1"
                 >Oferta en firme (€):</label
               >
               <input
@@ -242,36 +304,82 @@
                 Sellar Transacción
               </button>
             </form>
-            <div id="bid-feedback" class="feedback-msg"></div>
           </div>
+
           <div
-            class="chart-panel mt-4 border border-secondary p-3"
+            class="chart-panel mt-4 p-4 border border-secondary rounded"
             style="background: var(--dark-gray)"
           >
-            <h3 class="text-gold" style="font-size: 1.1rem">
-              Evolución del Valor
-            </h3>
+            <h3 class="text-gold h5">Evolución del Valor</h3>
             <canvas id="price-chart" height="200"></canvas>
           </div>
-          <div class="history-panel mt-4">
-            <h3 class="text-gold" style="font-size: 1.1rem">
-              Libro de Registros
-            </h3>
+
+          <div
+            class="history-panel mt-4 p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5">Libro de Registros</h3>
             <div id="artwork-bids-table"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="view-workshop" class="container" style="display: none">
+    <section id="view-profile" class="container mt-4" style="display: none">
+      <h2 class="section-title">Perfil del Ciudadano</h2>
+      <div class="row g-4 mt-2">
+        <div class="col-lg-4">
+          <div
+            class="card-auction p-4 text-center h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5 mb-4">Capital Desplegado</h3>
+            <canvas id="profile-chart"></canvas>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5 mb-4">Credenciales y KPIs</h3>
+            <ul class="list-unstyled" style="font-size: 1.1rem; line-height: 2">
+              <li>
+                <strong class="text-muted">Rango Oficial:</strong>
+                <span id="profile-rol" class="text-gold fw-bold text-uppercase"
+                  >...</span
+                >
+              </li>
+              <li>
+                <strong class="text-muted">Estado de la cuenta:</strong>
+                <span class="badge bg-success">Activo / Verificado</span>
+              </li>
+              <li class="mt-3">
+                <strong class="text-muted">Emblemas Adquiridos:</strong> <br />
+                <span
+                  class="badge border border-warning text-warning bg-dark p-2 mt-2 me-2"
+                  >🏛️ Coleccionista Imperial</span
+                >
+                <span
+                  class="badge border border-secondary text-secondary bg-dark p-2 mt-2"
+                  >📜 Ciudadano de Roma</span
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-workshop" class="container mt-4" style="display: none">
       <h2 class="section-title">El Taller del Artista</h2>
       <p class="text-muted mb-4">
         Gestión de inventario, forja de nuevas obras y análisis de mercado.
       </p>
       <div
         id="workshop-content"
-        class="border border-secondary p-4"
-        style="background: var(--dark-gray); border-radius: 8px"
+        class="border border-secondary p-4 rounded"
+        style="background: var(--dark-gray)"
       ></div>
 
       <template id="form-subir-obra-template">
@@ -299,8 +407,8 @@
                 required
               ></textarea>
             </div>
-            <div class="row" style="display: flex; gap: 1rem">
-              <div class="col" style="flex: 1">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
                 <label class="text-muted small">Precio Salida (€)</label>
                 <input
                   type="number"
@@ -311,7 +419,7 @@
                   required
                 />
               </div>
-              <div class="col" style="flex: 1">
+              <div class="col-md-6">
                 <label class="text-muted small">Fecha Cierre</label>
                 <input
                   type="datetime-local"
@@ -321,7 +429,7 @@
                 />
               </div>
             </div>
-            <div class="mb-4 mt-3">
+            <div class="mb-4">
               <label class="text-muted small"
                 >Imagen de la Obra (JPG/PNG/WEBP)</label
               >
@@ -333,15 +441,14 @@
                 required
               />
             </div>
-            <div style="display: flex; gap: 10px">
-              <button type="submit" class="btn-gold" style="flex: 2">
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn-gold w-100">
                 Publicar en Bóveda
               </button>
               <button
                 type="button"
                 onclick="loadWorkshopData()"
-                class="btn-outline"
-                style="flex: 1"
+                class="btn-outline w-50"
               >
                 Cancelar
               </button>
@@ -352,13 +459,13 @@
       </template>
     </section>
 
-    <section id="view-vault" class="container" style="display: none">
+    <section id="view-vault" class="container mt-4" style="display: none">
       <div
-        class="vault-header d-flex justify-content-between align-items-center mb-4"
+        class="vault-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3"
       >
         <div>
           <h2 class="section-title mb-0">Mi Bóveda Personal</h2>
-          <p class="text-muted">
+          <p class="text-muted mb-0">
             Gestión de activos y registro de licitaciones.
           </p>
         </div>
@@ -366,9 +473,13 @@
           <i class="fa-solid fa-plus"></i> Ingresar Fondos
         </button>
       </div>
-      <div class="row" style="display: flex; gap: 20px">
-        <div style="flex: 1">
-          <div class="card-auction p-4 h-100">
+
+      <div class="row g-4">
+        <div class="col-lg-4">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
             <h3 class="text-gold h5">Estado de Cuenta</h3>
             <hr class="border-secondary" />
             <div class="d-flex justify-content-between mb-2">
@@ -379,16 +490,24 @@
               <span>En Pujas (Bloqueado):</span
               ><span id="vault-blocked" class="text-muted">0.00 €</span>
             </div>
-            <div class="d-flex justify-content-between">
+            <div
+              class="d-flex justify-content-between mt-3 pt-3 border-top border-secondary"
+            >
               <span>Disponible:</span
-              ><span id="vault-available" class="text-gold fw-bold"
+              ><span
+                id="vault-available"
+                class="text-gold fw-bold"
+                style="font-size: 1.2rem"
                 >0.00 €</span
               >
             </div>
           </div>
         </div>
-        <div style="flex: 2">
-          <div class="card-auction p-4 h-100">
+        <div class="col-lg-8">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
             <h3 class="text-gold h5">Mis Pujas en Curso</h3>
             <div id="vault-bids-table"></div>
           </div>
@@ -396,26 +515,27 @@
       </div>
     </section>
 
-    <section id="view-admin" class="container" style="display: none">
+    <section id="view-admin" class="container mt-4" style="display: none">
       <h2 class="section-title">Mesa del Senado</h2>
       <p class="text-muted mb-4">
         Validación de lotes pendientes y supervisión de la plataforma.
       </p>
+
       <div
         id="admin-content"
-        class="border border-secondary p-4"
-        style="background: var(--dark-gray); border-radius: 8px"
+        class="border border-secondary p-4 rounded mb-4"
+        style="background: var(--dark-gray)"
       >
-        <h3 class="text-gold mb-3">Obras Pendientes de Revisión</h3>
+        <h3 class="text-gold h5 mb-3">Obras Pendientes de Revisión</h3>
         <div id="admin-pending-table"></div>
       </div>
 
       <div
         id="admin-users-panel"
-        class="border border-secondary p-4 mt-4"
-        style="background: var(--dark-gray); border-radius: 8px"
+        class="border border-secondary p-4 rounded"
+        style="background: var(--dark-gray)"
       >
-        <h3 class="text-gold mb-3">Gestión de Ciudadanos (Usuarios)</h3>
+        <h3 class="text-gold h5 mb-3">Gestión de Ciudadanos (Usuarios)</h3>
         <div id="admin-users-table"></div>
       </div>
     </section>
@@ -433,11 +553,12 @@
         background: rgba(0, 0, 0, 0.8);
         align-items: center;
         justify-content: center;
+        z-index: 1050;
       "
     >
       <div
-        class="modal-content card-auction p-4"
-        style="max-width: 400px; width: 90%"
+        class="modal-content card-auction p-4 border border-secondary rounded"
+        style="max-width: 400px; width: 90%; background: var(--dark-gray)"
       >
         <h3 class="text-gold mb-3">Aumentar Capital</h3>
         <p class="text-muted small mb-4">
@@ -463,7 +584,7 @@
             <button
               type="button"
               onclick="closeDepositModal()"
-              class="btn-outline"
+              class="btn-outline w-50"
             >
               Cancelar
             </button>
@@ -472,6 +593,38 @@
       </div>
     </div>
 
+    <footer
+      class="mt-5 py-4 border-top border-secondary text-center"
+      style="background: var(--black)"
+    >
+      <div class="container">
+        <p class="text-muted small mb-2">
+          &copy; 2026 AUREUS. Imperio de Subastas Exclusivas.
+        </p>
+        <nav aria-label="Enlaces de pie de página">
+          <a
+            href="#"
+            class="text-gold mx-2 small text-decoration-none"
+            tabindex="0"
+            >Términos Legales</a
+          >
+          <a
+            href="#"
+            class="text-gold mx-2 small text-decoration-none"
+            tabindex="0"
+            >Accesibilidad</a
+          >
+          <a
+            href="#"
+            class="text-gold mx-2 small text-decoration-none"
+            tabindex="0"
+            >Soporte al Mecenas</a
+          >
+        </nav>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="js/main.js"></script>
   </body>
 </html>
