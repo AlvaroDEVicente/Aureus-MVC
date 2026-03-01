@@ -31,27 +31,29 @@ class ControladorAcceso {
     /**
      * Procesa la petición POST del formulario login.php
      */
-    public function procesarLogin() {
-        // 1. Recogemos los datos que envía el usuario (El "Qué")
+        public function procesarLogin() {
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
 
-        // 2. Le pedimos al modelo que haga el trabajo sucio (El "Cómo")
         $usuario = $this->modeloUsuario->login($email, $password);
 
-        // 3. Tomamos la decisión basándonos en la respuesta del modelo (El "Flujo")
         if ($usuario) {
-            // Login correcto: Iniciamos la sesión de PHP y guardamos las credenciales
+            // NUEVO: Comprobamos si el usuario ha sido borrado lógicamente
+            if ($usuario['activo'] == 0) {
+                // Lo enviamos de vuelta con un código de error específico para baneados
+                header("Location: public/login.php?error=baneado");
+                exit();
+            }
+
+            // Login correcto (código original)
             session_start();
             $_SESSION['user_id'] = $usuario['id'];
             $_SESSION['user_nombre'] = $usuario['nombre'];
             $_SESSION['user_rol'] = $usuario['rol'];
 
-            // Redirigimos al usuario a la zona VIP (Nuestra SPA)
             header("Location: public/index.html");
             exit();
         } else {
-            // Login incorrecto: Lo devolvemos a la puerta con un aviso
             header("Location: public/login.php?error=1");
             exit();
         }

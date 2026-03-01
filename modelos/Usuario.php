@@ -31,7 +31,7 @@ class Usuario {
      * Reemplaza a vuestro antiguo 'procesar_login.php'
      */
     public function login($email, $password) {
-        $sql = "SELECT id_usuario, nombre, password, rol FROM usuario WHERE email = ?";
+        $sql = "SELECT id_usuario, nombre, password, rol, activo FROM usuario WHERE email = ?";
         
         // Fijaos: En vez de mysqli_prepare($conexion, $sql), usamos el enfoque de objetos:
         $stmt = $this->db->prepare($sql); 
@@ -46,7 +46,8 @@ class Usuario {
                 return [
                     'id' => $fila['id_usuario'],
                     'nombre' => $fila['nombre'],
-                    'rol' => $fila['rol']
+                    'rol' => $fila['rol'],
+                    'activo' => $fila['activo']
                 ];
             }
         }
@@ -103,6 +104,18 @@ class Usuario {
         $sql = "INSERT INTO usuario (nombre, email, password, rol, es_artista, dni, telefono) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("ssssiss", $nombre, $email, $pass_segura, $rol, $es_artista, $dni, $telefono);
+        
+        return $stmt->execute();
+    }
+
+    /**
+     * Realiza un borrado lógico del usuario (Baneo/Desactivación).
+     */
+    public function borrarUsuario($id_usuario) {
+        $sql = "UPDATE usuario SET activo = 0 WHERE id_usuario = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $id_usuario);
         
         return $stmt->execute();
     }

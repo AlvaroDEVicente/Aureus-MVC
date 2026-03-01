@@ -61,6 +61,12 @@ if(isset($_SESSION['user_id'])) {
                             </div>
                         <?php endif; ?>
 
+                        <?php if(isset($_GET['error']) && $_GET['error'] == 'baneado'): ?>
+                            <div class="alert alert-danger bg-dark text-danger border-danger">
+                                Su cuenta ha sido desactivada. Por favor, contacte con la Mesa del Senado para más información.
+                            </div>
+                        <?php endif; ?>
+
                         <form action="../index.php?accion=procesar_login" method="POST">
                             <div class="mb-3">
                                 <label class="form-label text-muted">Correo Electrónico</label>
