@@ -1,11 +1,13 @@
-import Chart from "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm";
+import Chart from "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/auto/+esm";
 
-let graficoActual = null;
+let graficoEvolucion = null;
+let graficoPerfil = null;
 
 export const graficas = {
+  // Gráfica de línea para la Ficha de la Obra
   pintarEvolucion: (idCanvas, historialPujas) => {
     const ctx = document.getElementById(idCanvas).getContext("2d");
-    if (graficoActual) graficoActual.destroy();
+    if (graficoEvolucion) graficoEvolucion.destroy();
 
     const historialOrdenado = [...historialPujas].reverse();
     const etiquetas = historialOrdenado.map((h) =>
@@ -13,7 +15,7 @@ export const graficas = {
     );
     const datos = historialOrdenado.map((h) => h.monto);
 
-    graficoActual = new Chart(ctx, {
+    graficoEvolucion = new Chart(ctx, {
       type: "line",
       data: {
         labels: etiquetas,
@@ -28,6 +30,33 @@ export const graficas = {
         ],
       },
       options: { responsive: true },
+    });
+  },
+
+  // Gráfica Donut para el Perfil del Usuario
+  pintarPerfil: (idCanvas, disponible, bloqueado) => {
+    const ctx = document.getElementById(idCanvas).getContext("2d");
+    if (graficoPerfil) graficoPerfil.destroy();
+
+    graficoPerfil = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Saldo Disponible", "Capital Bloqueado"],
+        datasets: [
+          {
+            data: [disponible, bloqueado],
+            backgroundColor: ["#d4af37", "#555555"],
+            borderColor: "#181818",
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#e0e0e0" } },
+        },
+      },
     });
   },
 };

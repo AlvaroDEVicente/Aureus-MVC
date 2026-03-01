@@ -5,13 +5,18 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
-      height: "300px",
+      height: "320px", // Un pelín más alto para rellenar el hueco
       columns: [
-        { title: "Obra", field: "titulo_obra", widthGrow: 3 },
-        { title: "Mecenas", field: "nombre_usuario", widthGrow: 2 },
+        // 1. Damos todo el espacio dinámico al título de la obra
+        { title: "Obra", field: "titulo_obra", widthGrow: 1 },
+
+        // 2. Columna de Dinero: Ancho fijo, alineada a la derecha y título corto
         {
-          title: "Monto",
+          title: "Valor",
           field: "monto",
+          width: 110,
+          hozAlign: "right",
+          headerHozAlign: "right",
           formatter: "money",
           formatterParams: { symbol: "€" },
         },
@@ -80,7 +85,6 @@ export const tablas = {
           formatter: "money",
           formatterParams: { symbol: "€" },
         },
-        // ¡Magia de eventos aquí! En vez de onclick, pasamos el callback.
         {
           title: "Acción",
           formatter: () =>
@@ -120,7 +124,6 @@ export const tablas = {
           },
           cellEdited: (cell) => cbCambioRol(cell.getData()),
         },
-        // ¡Evento nativo para borrar!
         {
           title: "Expulsar",
           formatter: () =>

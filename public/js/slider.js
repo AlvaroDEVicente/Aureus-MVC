@@ -10,6 +10,10 @@ export const filtroPrecios = {
       obras.length > 0
         ? Math.max(...obras.map((a) => Number(a.precio_actual)))
         : 1000;
+
+    // 👇 AÑADE ESTA LÍNEA DE SEGURIDAD 👇
+    if (maxPrice <= 0) maxPrice = 1000;
+
     maxPrice = Math.ceil(maxPrice / 100) * 100;
 
     noUiSlider.create(slider, {

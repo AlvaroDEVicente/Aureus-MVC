@@ -1,11 +1,16 @@
-// public/js/main.js
 import { api } from "./api.js";
-import { showView, openModal, closeModal, calculateSecondsLeft } from "./ui.js";
-// Importamos nuestras fachadas (las librerías están escondidas dentro)
+import {
+  showView,
+  openModal,
+  closeModal,
+  calculateSecondsLeft,
+  alerta,
+} from "./ui.js";
 import { reloj } from "./timers.js";
 import { filtroPrecios } from "./slider.js";
 import { graficas } from "./charts.js";
 import { tablas } from "./tables.js";
+import Chart from "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm";
 
 let allArtworks = [];
 let activeTimers = [];
@@ -37,37 +42,75 @@ window.showAdmin = () => {
   showView("view-admin", "nav-admin-btn", detailTimer);
   loadAdminData();
 };
-window.logout = async () => {
-  await api.get("logout");
-  window.location.href = "login.php";
+window.showProfile = () => {
+  showView("view-profile", null, detailTimer);
+  loadProfileData();
 };
+
+window.logout = () => {
+  window.location.href = "../index.php?accion=logout";
+};
+
 window.openDepositModal = () => openModal("modal-deposit");
 window.closeDepositModal = () => closeModal("modal-deposit");
 window.openNewArtworkModal = openNewArtworkModal;
 
+// ==========================================
+// LÓGICA DE USUARIO Y RUTAS
+// ==========================================
 async function loadUserData() {
   const user = await api.get("obtener_usuario");
   if (user.error) return (window.location.href = "login.php");
+
   document.getElementById("nav-username").innerText = user.nombre;
-  document.getElementById("nav-saldo-disponible").innerText = Number(
-    user.saldo_disponible,
-  ).toFixed(2);
-  document.getElementById("nav-saldo-bloqueado").innerText = Number(
-    user.saldo_bloqueado,
-  ).toFixed(2);
-  document.getElementById("nav-vault-btn").style.display = "inline-block";
-  if (user.es_artista == 1)
-    document.getElementById("nav-workshop-btn").style.display = "inline-block";
+  window.currentUser = user; // Guardamos los datos para usarlos en el Perfil
+
+  // 🔒 CONTROL DE ACCESO PARA EL ADMINISTRADOR
   if (user.rol === "admin") {
     document.getElementById("nav-admin-btn").style.display = "inline-block";
     document.getElementById("nav-vault-btn").style.display = "none";
+    // Ocultamos la caja de saldos (Responsive)
+    const balancesBox = document.getElementById("user-balances");
+    if (balancesBox) {
+      balancesBox.classList.remove("d-lg-block");
+      balancesBox.style.display = "none";
+    }
+  } else {
+    document.getElementById("nav-saldo-disponible").innerText = Number(
+      user.saldo_disponible,
+    ).toFixed(2);
+    document.getElementById("nav-saldo-bloqueado").innerText = Number(
+      user.saldo_bloqueado,
+    ).toFixed(2);
+    document.getElementById("nav-vault-btn").style.display = "inline-block";
   }
+
+  if (user.es_artista == 1)
+    document.getElementById("nav-workshop-btn").style.display = "inline-block";
 }
 
+// ==========================================
+// VISTA: PERFIL (NUEVO)
+// ==========================================
+function loadProfileData() {
+  const user = window.currentUser;
+  if (!user) return;
+
+  document.getElementById("profile-rol").innerText = user.rol;
+
+  // Extraemos los valores
+  const disponible = parseFloat(user.saldo_disponible) || 0;
+  const bloqueado = parseFloat(user.saldo_bloqueado) || 0;
+
+  // Llamamos a nuestro módulo de gráficas (¡Cero errores!)
+  graficas.pintarPerfil("profile-chart", disponible, bloqueado);
+}
+
+// ==========================================
+// CATÁLOGO
+// ==========================================
 async function loadCatalog() {
   allArtworks = await api.get("obtener_catalogo");
-
-  // Usamos nuestro módulo de Slider
   filtroPrecios.crear("slider-precio", allArtworks, (min, max) => {
     document.getElementById("precio-min-label").innerText = `${min} €`;
     document.getElementById("precio-max-label").innerText = `${max} €`;
@@ -79,14 +122,12 @@ async function loadCatalog() {
       `${filtradas.length} lotes encontrados`;
     renderCatalog(filtradas);
   });
-
   renderCatalog(allArtworks);
 }
 
 function renderCatalog(artworksToRender) {
   const container = document.getElementById("catalog-container");
   const template = document.getElementById("artwork-card-template");
-
   activeTimers.forEach((t) => t && t.stop());
   activeTimers = [];
   container.innerHTML = "";
@@ -105,21 +146,18 @@ function renderCatalog(artworksToRender) {
 
     const timerDisplay = clone.querySelector(".countdown-display");
     const secondsLeft = calculateSecondsLeft(art.fecha_fin);
-
-    // Usamos nuestro módulo de Reloj
     const t = reloj.iniciar(secondsLeft, timerDisplay, () => {
       btn.disabled = true;
       cardArticle.classList.add("terminado");
     });
     activeTimers.push(t);
-
     container.appendChild(clone);
   });
 }
 
 async function openArtworkDetail(id_obra) {
   const data = await api.get("obtener_detalle", `&id=${id_obra}`);
-  if (data.error) return alert(data.error);
+  if (data.error) return alerta("Error", data.error, "error");
 
   showView("view-detail", null, detailTimer);
   document.getElementById("detail-title").innerText = data.titulo;
@@ -136,84 +174,10 @@ async function openArtworkDetail(id_obra) {
 
   const timerDisplay = document.getElementById("detail-timer");
   const secondsLeft = calculateSecondsLeft(data.fecha_fin);
-
-  // Usamos nuestro módulo de Reloj
   detailTimer = reloj.iniciar(secondsLeft, timerDisplay);
 
-  // Usamos nuestros módulos de Tablas y Gráficas
   tablas.crearHistorialObra("#artwork-bids-table", data.history || []);
   graficas.pintarEvolucion("price-chart", data.history || []);
-}
-
-function initGlobalTicker() {
-  const fetchGlobalBids = async () => {
-    const data = await api.get("obtener_ticker");
-    if (!globalTickerTable)
-      globalTickerTable = tablas.crearTicker("#global-bids-table", data || []);
-    else globalTickerTable.setData(data || []);
-  };
-  fetchGlobalBids();
-  setInterval(fetchGlobalBids, 10000);
-}
-
-async function loadWorkshopData() {
-  const container = document.getElementById("workshop-content");
-  const data = await api.get("obtener_taller");
-  container.innerHTML = `<div class="workshop-dashboard"><div style="display: flex; justify-content: space-between; align-items: center;" class="mb-4"><h3 class="text-gold" style="margin:0;">Resumen de Actividad</h3><button onclick="openNewArtworkModal()" class="btn-gold">+ Forjar Nueva Obra</button></div><div id="artist-inventory-table"></div></div>`;
-  tablas.crearTaller("#artist-inventory-table", data.artworks || []);
-}
-
-async function loadAdminData() {
-  const works = await api.get("obtener_pendientes");
-  // Pasamos el Callback de aprobar como parámetro
-  tablas.crearAdminPendientes(
-    "#admin-pending-table",
-    works || [],
-    async (id) => {
-      if (!confirm("¿Deseas validar esta obra para su publicación inmediata?"))
-        return;
-      const result = await api.postJSON("aprobar_obra", { id_obra: id });
-      if (result.success) {
-        alert("Lote validado.");
-        loadAdminData();
-      } else alert("Error: " + result.message);
-    },
-  );
-
-  const users = await api.get("obtener_usuarios");
-  // Pasamos los Callbacks de cambiar rol y borrar como parámetros
-  tablas.crearAdminUsuarios(
-    "#admin-users-table",
-    users || [],
-    async (usuario) => {
-      await api.postJSON("cambiar_rol_usuario", {
-        id_usuario: usuario.id_usuario,
-        rol: usuario.rol,
-      });
-      alert("Rol actualizado a " + usuario.rol);
-    },
-    async (id) => {
-      if (!confirm("¿Seguro que deseas desterrar a este ciudadano?")) return;
-      const result = await api.postJSON("eliminar_usuario", { id_usuario: id });
-      if (result.success) {
-        alert("Ciudadano expulsado.");
-        loadAdminData();
-      } else alert("Fallo al eliminar: " + result.message);
-    },
-  );
-}
-
-async function loadVaultData() {
-  const user = await api.get("obtener_usuario");
-  document.getElementById("vault-available").innerText =
-    Number(user.saldo_disponible).toFixed(2) + " €";
-  document.getElementById("vault-blocked").innerText =
-    Number(user.saldo_bloqueado).toFixed(2) + " €";
-  document.getElementById("vault-total").innerText =
-    (Number(user.saldo_disponible) + Number(user.saldo_bloqueado)).toFixed(2) +
-    " €";
-  const bids = await api.get("obtener_mis_pujas");
-  tablas.crearBoveda("#vault-bids-table", bids || []);
 }
 
 function setupBidForm() {
@@ -232,26 +196,34 @@ function setupBidForm() {
         result.nuevo_saldo_bloqueado,
       ).toFixed(2);
       openArtworkDetail(payload.id_obra);
-    } else alert("Error: " + result.message);
+      alerta(
+        "Transacción Sellada",
+        "Su puja ha sido registrada en el libro mayor.",
+        "success",
+      );
+    } else alerta("Transacción Rechazada", result.message, "error");
   });
 }
 
-function setupDepositForm() {
-  document
-    .getElementById("form-deposit")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const result = await api.postJSON("ingresar_fondos", {
-        monto: document.getElementById("deposit-amount").value,
-      });
-      if (result.success) {
-        alert("Transferencia completada.");
-        closeModal("modal-deposit");
-        loadUserData();
-        if (document.getElementById("view-vault").style.display === "block")
-          loadVaultData();
-      } else alert("Error: " + result.message);
-    });
+// ==========================================
+// TALLER, ADMIN Y BÓVEDA
+// ==========================================
+function initGlobalTicker() {
+  const fetchGlobalBids = async () => {
+    const data = await api.get("obtener_ticker");
+    if (!globalTickerTable)
+      globalTickerTable = tablas.crearTicker("#global-bids-table", data || []);
+    else globalTickerTable.setData(data || []);
+  };
+  fetchGlobalBids();
+  setInterval(fetchGlobalBids, 10000);
+}
+
+async function loadWorkshopData() {
+  const container = document.getElementById("workshop-content");
+  const data = await api.get("obtener_taller");
+  container.innerHTML = `<div class="workshop-dashboard"><div class="d-flex justify-content-between align-items-center mb-4"><h3 class="text-gold h5 m-0">Resumen de Actividad</h3><button onclick="openNewArtworkModal()" class="btn-gold">+ Forjar Nueva Obra</button></div><div id="artist-inventory-table"></div></div>`;
+  tablas.crearTaller("#artist-inventory-table", data.artworks || []);
 }
 
 function openNewArtworkModal() {
@@ -266,8 +238,117 @@ function openNewArtworkModal() {
       e.preventDefault();
       const result = await api.postForm("subir_obra", new FormData(e.target));
       if (result.success) {
-        alert("¡Obra forjada!");
+        alerta(
+          "Lote Forjado",
+          "¡La obra ha sido enviada al Senado!",
+          "success",
+        );
         loadWorkshopData();
-      } else alert("Error: " + result.message);
+      } else alerta("Error en la Forja", result.message, "error");
+    });
+}
+
+async function loadAdminData() {
+  const works = await api.get("obtener_pendientes");
+  tablas.crearAdminPendientes(
+    "#admin-pending-table",
+    works || [],
+    async (id) => {
+      // Usamos SweetAlert2 para la confirmación de validación
+      Swal.fire({
+        title: "¿Validar Obra?",
+        text: "La obra será publicada en el catálogo.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#d4af37",
+        cancelButtonColor: "#333",
+        background: "#181818",
+        color: "#d4af37",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const res = await api.postJSON("aprobar_obra", { id_obra: id });
+          if (res.success) {
+            alerta("Aprobado", "Lote validado exitosamente.", "success");
+            loadAdminData();
+          } else alerta("Error", res.message, "error");
+        }
+      });
+    },
+  );
+
+  const users = await api.get("obtener_usuarios");
+  tablas.crearAdminUsuarios(
+    "#admin-users-table",
+    users || [],
+    async (usuario) => {
+      await api.postJSON("cambiar_rol_usuario", {
+        id_usuario: usuario.id_usuario,
+        rol: usuario.rol,
+      });
+      alerta(
+        "Rol Actualizado",
+        `El ciudadano ahora es ${usuario.rol}.`,
+        "success",
+      );
+    },
+    async (id) => {
+      // 🚨 CONFIRMACIÓN DE DESTERRAMIENTO CON SWEETALERT 🚨
+      Swal.fire({
+        title: "¿Revocar Acceso?",
+        text: "Esta acción inhabilitará al ciudadano.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d4af37",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Sí, desterrar",
+        background: "#181818",
+        color: "#d4af37",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const res = await api.postJSON("eliminar_usuario", {
+            id_usuario: id,
+          });
+          if (res.success) {
+            alerta("Expulsado", "Ciudadano desterrado del imperio.", "success");
+            loadAdminData();
+          } else alerta("Error", res.message, "error");
+        }
+      });
+    },
+  );
+}
+
+async function loadVaultData() {
+  const user = await api.get("obtener_usuario");
+  document.getElementById("vault-available").innerText =
+    Number(user.saldo_disponible).toFixed(2) + " €";
+  document.getElementById("vault-blocked").innerText =
+    Number(user.saldo_bloqueado).toFixed(2) + " €";
+  document.getElementById("vault-total").innerText =
+    (Number(user.saldo_disponible) + Number(user.saldo_bloqueado)).toFixed(2) +
+    " €";
+  const bids = await api.get("obtener_mis_pujas");
+  tablas.crearBoveda("#vault-bids-table", bids || []);
+}
+
+function setupDepositForm() {
+  document
+    .getElementById("form-deposit")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const result = await api.postJSON("ingresar_fondos", {
+        monto: document.getElementById("deposit-amount").value,
+      });
+      if (result.success) {
+        alerta(
+          "Transacción Completada",
+          "Sus fondos han sido actualizados en la bóveda.",
+          "success",
+        );
+        closeModal("modal-deposit");
+        loadUserData();
+        if (document.getElementById("view-vault").style.display === "block")
+          loadVaultData();
+      } else alerta("Error Bancario", result.message, "error");
     });
 }

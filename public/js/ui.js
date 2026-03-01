@@ -8,6 +8,9 @@ export function hideAllViews(detailTimer) {
   document.getElementById("view-workshop").style.display = "none";
   document.getElementById("view-vault").style.display = "none";
   document.getElementById("view-admin").style.display = "none";
+
+  // 1. AÑADIDO: Ocultamos también la nueva vista de perfil
+  document.getElementById("view-profile").style.display = "none";
   if (detailTimer) detailTimer.stop();
 }
 
@@ -38,4 +41,20 @@ export function calculateSecondsLeft(dateStr) {
   const now = new Date();
   const diffMs = endDate - now;
   return diffMs > 0 ? Math.floor(diffMs / 1000) : 0;
+}
+
+// ==========================================
+// 2. AÑADIDO: Función envoltorio para las alertas de SweetAlert2
+// ==========================================
+export function alerta(titulo, texto, icono = "info") {
+  Swal.fire({
+    title: titulo,
+    text: texto,
+    icon: icono,
+    background: "#181818",
+    color: "#d4af37",
+    confirmButtonColor: "#d4af37",
+    cancelButtonColor: "#333333",
+    customClass: { popup: "border border-warning" },
+  });
 }
