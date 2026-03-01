@@ -46,6 +46,21 @@ switch ($accion) {
         $controlador->procesarRegistro();
         break;
 
+        case 'obtener_usuarios':
+        $controlador = new ControladorAcceso();
+        $controlador->obtenerUsuarios();
+        break;
+
+    case 'cambiar_rol_usuario':
+        $controlador = new ControladorAcceso();
+        $controlador->cambiarRolUsuario();
+        break;
+
+    case 'eliminar_usuario':
+        $controlador = new ControladorAcceso();
+        $controlador->eliminarUsuario();
+        break;
+
    // =======================================================
     // BLOQUE 2: RUTAS DE OBRAS Y TALLER (ControladorSubasta)
     // =======================================================

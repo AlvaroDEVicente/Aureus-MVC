@@ -108,6 +108,25 @@ class Usuario {
         return $stmt->execute();
     }
 
+/**
+     * PANEL ADMIN: Obtiene la lista completa de usuarios.
+     */
+    public function obtenerTodos() {
+        $sql = "SELECT id_usuario, nombre, email, rol, saldo_disponible, fecha_registro FROM usuario ORDER BY fecha_registro DESC";
+        $resultado = $this->db->query($sql);
+        return $resultado->fetch_all(MYSQLI_ASSOC);
+    }
+
+    /**
+     * PANEL ADMIN: Cambia el rol de un usuario.
+     */
+    public function actualizarRol($id_usuario, $nuevo_rol) {
+        $sql = "UPDATE usuario SET rol = ? WHERE id_usuario = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("si", $nuevo_rol, $id_usuario);
+        return $stmt->execute();
+    }
+
     /**
      * Realiza un borrado lógico del usuario (Baneo/Desactivación).
      */

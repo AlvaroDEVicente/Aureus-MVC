@@ -136,5 +136,48 @@ class ControladorAcceso {
         }
         exit();
     }
+
+    public function obtenerUsuarios() {
+        session_start();
+        header('Content-Type: application/json');
+        
+        // BLINDAJE ACL: Solo el administrador puede ver esto
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
+            echo json_encode(["error" => "Acceso denegado. Exclusivo del Senado."]); exit();
+        }
+        
+        echo json_encode($this->modeloUsuario->obtenerTodos());
+        exit();
+    }
+
+    public function cambiarRolUsuario() {
+        session_start();
+        header('Content-Type: application/json');
+        
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
+            echo json_encode(["success" => false, "message" => "Acceso denegado."]); exit();
+        }
+
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $exito = $this->modeloUsuario->actualizarRol($datos['id_usuario'], $datos['rol']);
+        
+        echo json_encode(["success" => $exito]);
+        exit();
+    }
+
+    public function eliminarUsuario() {
+        session_start();
+        header('Content-Type: application/json');
+        
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
+            echo json_encode(["success" => false, "message" => "Acceso denegado."]); exit();
+        }
+
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $exito = $this->modeloUsuario->borrarUsuario($datos['id_usuario']);
+        
+        echo json_encode(["success" => $exito]);
+        exit();
+    }
 }
 ?>

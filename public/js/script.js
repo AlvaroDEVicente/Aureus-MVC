@@ -260,15 +260,15 @@ async function openArtworkDetail(id_obra) {
       });
       detailTimer.addEventListener("secondsUpdated", () => {
         let dias = detailTimer.getTimeValues().days;
-          let horas = detailTimer.getTimeValues().hours;
+        let horas = detailTimer.getTimeValues().hours;
 
-          // Si falta más de 1 día, mostramos el texto fácil
-          if (dias > 0) {
-              timerDisplay.innerText = dias + " días, " + horas + " horas";
-          } else {
-              // Si falta menos de un día, mostramos el reloj normal
-              timerDisplay.innerText = detailTimer.getTimeValues().toString();
-          }
+        // Si falta más de 1 día, mostramos el texto fácil
+        if (dias > 0) {
+          timerDisplay.innerText = dias + " días, " + horas + " horas";
+        } else {
+          // Si falta menos de un día, mostramos el reloj normal
+          timerDisplay.innerText = detailTimer.getTimeValues().toString();
+        }
       });
     } else {
       timerDisplay.innerText = "FINALIZADA";
@@ -491,6 +491,7 @@ async function handleUploadSubmit(e) {
 
 async function loadAdminData() {
   try {
+    // 1. CARGAR OBRAS PENDIENTES
     const response = await fetch(RUTA_API + "obtener_pendientes");
     const works = await response.json();
 
@@ -508,20 +509,97 @@ async function loadAdminData() {
         },
         {
           title: "Acción",
-          formatter: (cell) => {
-            const id = cell.getData().id_obra;
-            return `<button onclick="approveWork(${id})" class="btn-gold" style="padding: 5px 10px; font-size: 0.8rem;">Validar</button>`;
-          },
+          formatter: (cell) =>
+            `<button onclick="approveWork(${cell.getData().id_obra})" class="btn-gold" style="padding: 5px 10px; font-size: 0.8rem;">Validar</button>`,
           hozAlign: "center",
           headerSort: false,
         },
       ],
       placeholder: "No hay obras pendientes de validación.",
     });
+
+    // 2. CARGAR USUARIOS DEL SISTEMA
+    const usersResponse = await fetch(RUTA_API + "obtener_usuarios");
+    const users = await usersResponse.json();
+
+    new Tabulator("#admin-users-table", {
+      data: users || [],
+      layout: "fitColumns",
+      columns: [
+        { title: "ID", field: "id_usuario", width: 60 },
+        { title: "Nombre", field: "nombre", widthGrow: 2 },
+        { title: "Email", field: "email", widthGrow: 2 },
+        {
+          title: "Saldo",
+          field: "saldo_disponible",
+          formatter: "money",
+          formatterParams: { symbol: "€" },
+        },
+        {
+          title: "Rol",
+          field: "rol",
+          editor: "list", // Convertimos la celda en un desplegable
+          editorParams: {
+            values: {
+              visitante: "Visitante",
+              comprador: "Comprador",
+              artista: "Artista",
+              admin: "Admin",
+            },
+          },
+          cellEdited: async function (cell) {
+            // Al cambiar el valor, lanzamos petición al servidor
+            const data = cell.getData();
+            await fetch(RUTA_API + "cambiar_rol_usuario", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id_usuario: data.id_usuario,
+                rol: data.rol,
+              }),
+            });
+            alert("Rol actualizado a " + data.rol);
+          },
+        },
+        {
+          title: "Expulsar",
+          formatter: (cell) =>
+            `<button onclick="deleteUser(${cell.getData().id_usuario})" class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Borrar</button>`,
+          hozAlign: "center",
+          headerSort: false,
+        },
+      ],
+    });
   } catch (error) {
-    console.error("Error cargando obras pendientes:", error);
+    console.error("Error cargando panel de control:", error);
   }
 }
+
+// Función auxiliar para borrar usuarios
+window.deleteUser = async function (id) {
+  if (
+    !confirm(
+      "¿Seguro que deseas desterrar a este ciudadano? Esta acción es irreversible.",
+    )
+  )
+    return;
+  try {
+    const response = await fetch(RUTA_API + "eliminar_usuario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_usuario: id }),
+    });
+    const result = await response.json();
+    if (result.success) {
+      alert("Ciudadano expulsado del imperio.");
+      loadAdminData(); // Recargamos la tabla
+    } else {
+      alert("Fallo al eliminar: " + result.message);
+    }
+  } catch (error) {
+    console.error("Error al borrar usuario:", error);
+  }
+};
 
 window.approveWork = async function (id) {
   if (!confirm("¿Deseas validar esta obra para su publicación inmediata?"))
