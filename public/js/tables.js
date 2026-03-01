@@ -5,13 +5,18 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
-      height: "300px",
+      height: "320px", // Un pelín más alto para rellenar el hueco
       columns: [
-        { title: "Obra", field: "titulo_obra", widthGrow: 3 },
-        { title: "Mecenas", field: "nombre_usuario", widthGrow: 2 },
+        // 1. Damos todo el espacio dinámico al título de la obra
+        { title: "Obra", field: "titulo_obra", widthGrow: 1 },
+
+        // 2. Columna de Dinero: Ancho fijo, alineada a la derecha y título corto
         {
-          title: "Monto",
+          title: "Valor",
           field: "monto",
+          width: 110,
+          hozAlign: "right",
+          headerHozAlign: "right",
           formatter: "money",
           formatterParams: { symbol: "€" },
         },
@@ -80,7 +85,6 @@ export const tablas = {
           formatter: "money",
           formatterParams: { symbol: "€" },
         },
-        // ¡Magia de eventos aquí! En vez de onclick, pasamos el callback.
         {
           title: "Acción",
           formatter: () =>
@@ -98,19 +102,7 @@ export const tablas = {
       layout: "fitColumns",
       columns: [
         { title: "ID", field: "id_usuario", width: 60 },
-        {
-          title: "Nombre",
-          field: "nombre",
-          widthGrow: 2,
-          // Formateador dinámico: Si está baneado, lo tachamos y le ponemos insignia
-          formatter: (cell) => {
-            const usuario = cell.getData();
-            if (usuario.activo == 0) {
-              return `<span class="text-danger text-decoration-line-through">${usuario.nombre}</span> <span class="badge bg-danger ms-2">Desterrado</span>`;
-            }
-            return usuario.nombre;
-          },
-        },
+        { title: "Nombre", field: "nombre", widthGrow: 2 },
         { title: "Email", field: "email", widthGrow: 2 },
         {
           title: "Saldo",
@@ -134,22 +126,11 @@ export const tablas = {
         },
         {
           title: "Expulsar",
-          // Formateador: Si ya está baneado, quitamos el botón
-          formatter: (cell) => {
-            const usuario = cell.getData();
-            if (usuario.activo == 0) {
-              return `<span class="text-muted small">Inhabilitado</span>`;
-            }
-            return `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Borrar</button>`;
-          },
+          formatter: () =>
+            `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Borrar</button>`,
           hozAlign: "center",
           headerSort: false,
-          // Evento: Solo lanzamos el borrado si está activo
-          cellClick: (e, cell) => {
-            if (cell.getData().activo != 0) {
-              cbBorrar(cell.getData().id_usuario);
-            }
-          },
+          cellClick: (e, cell) => cbBorrar(cell.getData().id_usuario),
         },
       ],
     }),
