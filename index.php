@@ -17,7 +17,7 @@ $accion = $_GET['accion'] ?? 'inicio';
 
 // 3. El semáforo (Switch) que dirige el tráfico de Aureus
 switch ($accion) {
-    
+
     // =======================================================
     // BLOQUE 1: RUTAS DE IDENTIFICACIÓN (ControladorAcceso)
     // =======================================================
@@ -41,12 +41,17 @@ switch ($accion) {
         $controlador->ingresarFondos();
         break;
 
+    case 'capturar_pago_paypal':
+        $controlador = new ControladorAcceso();
+        $controlador->capturarPagoPayPal();
+        break;
+
     case 'procesar_registro':
         $controlador = new ControladorAcceso();
         $controlador->procesarRegistro();
         break;
 
-        case 'obtener_usuarios':
+    case 'obtener_usuarios':
         $controlador = new ControladorAcceso();
         $controlador->obtenerUsuarios();
         break;
@@ -61,7 +66,7 @@ switch ($accion) {
         $controlador->eliminarUsuario();
         break;
 
-   // =======================================================
+    // =======================================================
     // BLOQUE 2: RUTAS DE OBRAS Y TALLER (ControladorSubasta)
     // =======================================================
     case 'obtener_catalogo':
@@ -98,7 +103,7 @@ switch ($accion) {
     case 'obtener_detalle':
         $controlador = new ControladorSubasta();
         // ¡Cuidado! En vuestro controlador se llama obtenerDetalleObra
-        $controlador->obtenerDetalleObra(); 
+        $controlador->obtenerDetalleObra();
         break;
 
     case 'sellar_transaccion':
@@ -109,7 +114,7 @@ switch ($accion) {
     case 'obtener_ticker':
         $controlador = new ControladorSubasta();
         // ¡Cuidado! En vuestro controlador se llama obtenerTickerGlobal
-        $controlador->obtenerTickerGlobal(); 
+        $controlador->obtenerTickerGlobal();
         break;
 
     // =======================================================
