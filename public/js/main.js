@@ -332,23 +332,61 @@ async function loadVaultData() {
 }
 
 function setupDepositForm() {
-  document
-    .getElementById("form-deposit")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const result = await api.postJSON("ingresar_fondos", {
-        monto: document.getElementById("deposit-amount").value,
+  const paypalContainer = document.getElementById('paypal-button-container');
+  
+  // Si no estamos en la vista que tiene el modal (por si acaso), no hacemos nada
+  if (!paypalContainer) return;
+
+  paypal.Buttons({
+    // 1. Configurar la transacción cuando el Mecenas hace clic
+    createOrder: function(data, actions) {
+      const amount = document.getElementById("deposit-amount").value;
+      
+      if (amount < 10) {
+        // Usamos la alerta bonita de vuestro proyecto
+        alerta("Aviso Imperial", "El ingreso mínimo en la bóveda es de 10€", "warning");
+        return false; // Detiene a PayPal
+      }
+      
+      return actions.order.create({
+        purchase_units: [{
+          amount: { value: amount }
+        }]
       });
-      if (result.success) {
-        alerta(
-          "Transacción Completada",
-          "Sus fondos han sido actualizados en la bóveda.",
-          "success",
-        );
-        closeModal("modal-deposit");
-        loadUserData();
-        if (document.getElementById("view-vault").style.display === "block")
-          loadVaultData();
-      } else alerta("Error Bancario", result.message, "error");
-    });
+    },
+    
+    // 2. ¿Qué pasa cuando el Mecenas aprueba el pago en la ventana de PayPal?
+    onApprove: async function(data, actions) {
+      try {
+        // Mensaje de espera mientras el backend verifica
+        paypalContainer.innerHTML = "<p class='text-gold text-center mt-3'>Validando transacción con el Senado...</p>";
+
+        // Usamos la misma función api.postJSON que ya teníais
+        const result = await api.postJSON("capturar_pago_paypal", {
+          orderID: data.orderID
+        });
+
+        if (result.success) {
+          alerta(
+            "Transacción Completada",
+            "Se han añadido " + result.monto_anadido + "€ a su bóveda.",
+            "success"
+          );
+          closeModal("modal-deposit");
+          loadUserData();
+          if (document.getElementById("view-vault").style.display === "block") {
+            loadVaultData();
+          }
+        } else {
+          alerta("Error Bancario", result.message, "error");
+        }
+      } catch (error) {
+        console.error("Fallo crítico validando el pago:", error);
+        alerta("Error de comunicación", "El servidor no responde.", "error");
+      } finally {
+        // Recargamos la página pasados 2 segundos para limpiar el modal
+        setTimeout(() => location.reload(), 2000); 
+      }
+    }
+  }).render('#paypal-button-container');
 }
