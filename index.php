@@ -1,4 +1,7 @@
 <?php
+ob_start(); // Inicia el búfer de salida
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // No mostrar errores en el flujo JSON
 /**
  * AUREUS - Proyecto Intermodular
  * Capa: FRONT CONTROLLER (Enrutador Principal)
@@ -66,6 +69,15 @@ switch ($accion) {
         $controlador->eliminarUsuario();
         break;
 
+    case 'amnistiar_usuario':
+        (new ControladorAcceso())->amnistiarUsuario();
+        break;
+
+    case 'ascender_artista':
+        $controlador = new ControladorAcceso();
+        $controlador->ascenderArtista();
+        break;
+
     // =======================================================
     // BLOQUE 2: RUTAS DE OBRAS Y TALLER (ControladorSubasta)
     // =======================================================
@@ -115,6 +127,11 @@ switch ($accion) {
         $controlador = new ControladorSubasta();
         // ¡Cuidado! En vuestro controlador se llama obtenerTickerGlobal
         $controlador->obtenerTickerGlobal();
+        break;
+
+    case 'obtener_detalle_revision':
+        $controlador = new ControladorSubasta();
+        $controlador->obtenerDetalleRevision();
         break;
 
     // =======================================================

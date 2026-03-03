@@ -1,370 +1,663 @@
 <!doctype html>
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AUREUS | Plataforma de Subastas Exclusivas</title>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AUREUS | Plataforma de Subastas Exclusivas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap"
-    rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" rel="stylesheet" />
-  <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
 
-  <link rel="stylesheet" href="css/estilos.css" />
-</head>
+  <body>
+    <header class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
+      <div class="container-fluid px-4">
+        <a
+          class="navbar-brand"
+          href="#"
+          onclick="
+            showCatalog();
+            return false;
+          "
+        >
+          <img
+            src="./img/Aureus_logo.png"
+            alt="Logo AUREUS"
+            style="height: 100px; width: auto; object-fit: contain"
+          />
+        </a>
 
-<body>
-  <header class="navbar navbar-expand-lg navbar-dark navbar-glass sticky-top">
-    <div class="container-fluid px-4">
-      <a class="navbar-brand" href="#">
-        <img src="./img/Aureus_logo.png" alt="Logo AUREUS" style="height: 100px; width: auto; object-fit: contain" />
-      </a>
+        <button
+          class="navbar-toggler border-gold"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#menuPrincipal"
+          aria-controls="menuPrincipal"
+          aria-expanded="false"
+          aria-label="Alternar navegación"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-      <button class="navbar-toggler border-gold" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal"
-        aria-controls="menuPrincipal" aria-expanded="false" aria-label="Alternar navegación">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="menuPrincipal">
-        <nav class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
-          <button id="nav-catalog-btn" onclick="showCatalog()" class="nav-link active btn-text text-uppercase">
-            Subastas
-          </button>
-          <button id="nav-workshop-btn" onclick="showWorkshop()" class="nav-link btn-text text-uppercase"
-            style="display: none">
-            Taller
-          </button>
-          <button id="nav-vault-btn" onclick="showVault()" class="nav-link btn-text text-uppercase"
-            style="display: none">
-            Bóveda
-          </button>
-          <button id="nav-admin-btn" onclick="showAdmin()" class="nav-link btn-text text-uppercase"
-            style="display: none">
-            Senado
-          </button>
-        </nav>
-
-        <div class="user-panel d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-3 mt-lg-0">
-          <div id="user-balances" class="text-start text-lg-end d-none d-lg-block">
-            <div class="small">
-              Disponible:
-              <span id="nav-saldo-disponible" class="text-gold fw-bold">...</span>
-              €
-            </div>
-            <div class="small text-muted">
-              Bloqueado: <span id="nav-saldo-bloqueado">...</span> €
-            </div>
-          </div>
-
-          <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle text-gold w-100" type="button"
-              data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fa-solid fa-user"></i>
-              <span id="nav-username">Cargando...</span>
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+          <nav class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
+            <button
+              id="nav-catalog-btn"
+              onclick="showCatalog()"
+              class="nav-link active btn-text text-uppercase"
+            >
+              Subastas
             </button>
-            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-secondary">
-              <li>
-                <button class="dropdown-item" onclick="showProfile()">
-                  <i class="fa-solid fa-id-card"></i> Mi Perfil
+            <button
+              id="nav-workshop-btn"
+              onclick="showWorkshop()"
+              class="nav-link btn-text text-uppercase"
+              style="display: none"
+            >
+              Taller
+            </button>
+            <button
+              id="nav-vault-btn"
+              onclick="showVault()"
+              class="nav-link btn-text text-uppercase"
+              style="display: none"
+            >
+              Bóveda
+            </button>
+            <button
+              id="nav-admin-btn"
+              onclick="showAdmin()"
+              class="nav-link btn-text text-uppercase"
+              style="display: none"
+            >
+              Senado
+            </button>
+          </nav>
+
+          <div
+            class="user-panel d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-3 mt-lg-0"
+          >
+            <div id="guest-panel" class="d-none gap-2">
+              <a
+                href="login.php"
+                class="btn btn-outline-secondary text-gold border-secondary"
+                >Iniciar Sesión</a
+              >
+              <a href="registro.php" class="btn btn-gold">Registrarse</a>
+            </div>
+
+            <div
+              id="logged-in-panel"
+              class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 d-none"
+            >
+              <div
+                id="user-balances"
+                class="text-start text-lg-end d-none d-lg-block"
+              >
+                <div class="small">
+                  Disponible:
+                  <span id="nav-saldo-disponible" class="text-gold fw-bold"
+                    >...</span
+                  >
+                  €
+                </div>
+                <div class="small text-muted">
+                  Bloqueado: <span id="nav-saldo-bloqueado">...</span> €
+                </div>
+              </div>
+
+              <div class="dropdown">
+                <button
+                  class="btn btn-outline-secondary dropdown-toggle text-gold w-100"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="fa-solid fa-user"></i>
+                  <span id="nav-username">Cargando...</span>
                 </button>
-              </li>
-              <li>
-                <hr class="dropdown-divider border-secondary" />
-              </li>
-              <li>
-                <button class="dropdown-item text-danger" onclick="logout()">
-                  <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </button>
-              </li>
-            </ul>
+                <ul
+                  class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-secondary"
+                >
+                  <li>
+                    <button class="dropdown-item" onclick="showProfile()">
+                      <i class="fa-solid fa-id-card"></i> Mi Perfil
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider border-secondary" /></li>
+                  <li>
+                    <button
+                      class="dropdown-item text-danger"
+                      onclick="logout()"
+                    >
+                      <i class="fa-solid fa-right-from-bracket"></i> Cerrar
+                      Sesión
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main id="view-catalog" class="container mt-4">
-    <div class="row">
-      <aside class="col-lg-3 mb-4">
-        <div class="sticky-top" style="top: 100px; z-index: 10">
-          <div class="filters-sidebar p-4 border border-secondary rounded mb-4" style="background: var(--dark-gray)">
-            <h3 class="text-gold mb-4" style="
+    <main id="view-catalog" class="container mt-4">
+      <div class="row">
+        <aside class="col-lg-3 mb-4">
+          <div class="sticky-top" style="top: 100px; z-index: 10">
+            <div
+              class="filters-sidebar p-4 border border-secondary rounded mb-4"
+              style="background: var(--dark-gray)"
+            >
+              <h3
+                class="text-gold mb-4"
+                style="
                   font-size: 1.1rem;
                   border-bottom: 1px solid var(--border);
                   padding-bottom: 10px;
-                ">
-              Criterios de Búsqueda
-            </h3>
-            <div class="filter-group mb-4">
-              <h4 class="text-muted small mb-3">Presupuesto Máximo</h4>
-              <div id="slider-precio"></div>
-              <div class="precio-valores d-flex justify-content-between mt-3">
-                <span class="precio-min text-muted small" id="precio-min-label">0 €</span>
-                <span class="precio-max text-muted small" id="precio-max-label">... €</span>
-              </div>
-              <div id="filtro-contador" class="text-gold small mt-2 font-monospace">
-                Calculando obras...
-              </div>
-            </div>
-            <div class="filter-group">
-              <h4 class="text-muted small mb-2">Disciplina</h4>
-              <select id="filter-category" class="form-select bg-dark text-light border-secondary">
-                <option value="todas">Todas las disciplinas</option>
-                <option value="pintura">Pintura Clásica</option>
-                <option value="escultura">Escultura</option>
-              </select>
-            </div>
-          </div>
+                "
+              >
+                Criterios de Búsqueda
+              </h3>
 
-          <div class="global-activity-panel p-3 border border-secondary rounded" style="background: var(--dark-gray)">
-            <h3 class="text-gold mb-3" style="
+              <div class="filter-group mb-4">
+                <h4 class="text-muted small mb-3">Presupuesto Máximo</h4>
+                <div id="slider-precio"></div>
+                <div class="precio-valores d-flex justify-content-between mt-3">
+                  <span
+                    class="precio-min text-muted small"
+                    id="precio-min-label"
+                    >0 €</span
+                  >
+                  <span
+                    class="precio-max text-muted small"
+                    id="precio-max-label"
+                    >... €</span
+                  >
+                </div>
+                <div
+                  id="filtro-contador"
+                  class="text-gold small mt-2 font-monospace"
+                >
+                  Calculando obras...
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h4 class="text-muted small mb-3">Ordenar Catálogo</h4>
+
+                <div class="form-check mb-2">
+                  <input
+                    class="form-check-input bg-dark border-gold"
+                    type="radio"
+                    name="sort-catalog"
+                    id="sort-time"
+                    value="time-asc"
+                    checked
+                  />
+                  <label
+                    class="form-check-label text-light small"
+                    for="sort-time"
+                    style="cursor: pointer"
+                  >
+                    Próximas a cerrar
+                  </label>
+                </div>
+
+                <div class="form-check mb-2">
+                  <input
+                    class="form-check-input bg-dark border-gold"
+                    type="radio"
+                    name="sort-catalog"
+                    id="sort-price-asc"
+                    value="price-asc"
+                  />
+                  <label
+                    class="form-check-label text-light small"
+                    for="sort-price-asc"
+                    style="cursor: pointer"
+                  >
+                    Precio: Menor a Mayor
+                  </label>
+                </div>
+
+                <div class="form-check">
+                  <input
+                    class="form-check-input bg-dark border-gold"
+                    type="radio"
+                    name="sort-catalog"
+                    id="sort-price-desc"
+                    value="price-desc"
+                  />
+                  <label
+                    class="form-check-label text-light small"
+                    for="sort-price-desc"
+                    style="cursor: pointer"
+                  >
+                    Precio: Mayor a Menor
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="global-activity-panel p-3 border border-secondary rounded"
+              style="background: var(--dark-gray)"
+            >
+              <h3
+                class="text-gold mb-3"
+                style="
                   font-size: 0.9rem;
                   text-transform: uppercase;
                   letter-spacing: 1px;
-                ">
-              <i class="fa-solid fa-chart-line me-2"></i> Actividad en Vivo
-            </h3>
-            <div id="global-bids-table"></div>
-          </div>
-        </div>
-      </aside>
-
-      <div class="col-lg-9">
-        <div class="d-flex justify-content-between align-items-end mb-4">
-          <h2 class="section-title m-0 fs-4">Subastas en curso</h2>
-          <span class="badge bg-dark border border-secondary text-gold p-2">Colección de Primavera</span>
-        </div>
-
-        <div id="catalog-container" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"></div>
-      </div>
-    </div>
-
-    <template id="artwork-card-template">
-      <div class="col">
-        <article class="card-auction h-100 d-flex flex-column">
-          <div class="card-img-wrapper" style="height: 250px">
-            <img class="card-image w-100 h-100 object-fit-cover" src="" alt="Obra de Arte" />
-          </div>
-          <div class="card-body d-flex flex-column flex-grow-1">
-            <h3 class="card-title h6 mb-3 text-truncate">Título</h3>
-            <div class="price-row mb-auto">
-              <span class="text-muted small d-block">Puja Actual</span>
-              <strong class="card-precio-actual text-gold fs-5">0</strong>
-              <span class="text-gold">€</span>
+                "
+              >
+                <i class="fa-solid fa-chart-line me-2"></i> Actividad en Vivo
+              </h3>
+              <div id="global-bids-table"></div>
             </div>
-            <div class="timer-container mt-3 mb-3 p-2 border border-secondary rounded text-center"
-              style="background: var(--black)">
-              <span class="text-muted small d-block mb-1">Tiempo Restante</span>
-              <div class="countdown-display text-gold font-monospace">
-                --:--:--
+          </div>
+        </aside>
+
+        <div class="col-lg-9">
+          <div class="d-flex justify-content-between align-items-end mb-4">
+            <h2 class="section-title m-0 fs-4">Subastas en curso</h2>
+            <span class="badge bg-dark border border-secondary text-gold p-2"
+              >Colección de Primavera</span
+            >
+          </div>
+          <div
+            id="catalog-container"
+            class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"
+          ></div>
+        </div>
+      </div>
+
+      <template id="artwork-card-template">
+        <div class="col">
+          <article class="card-auction h-100 d-flex flex-column">
+            <div class="card-img-wrapper" style="height: 250px">
+              <img
+                class="card-image w-100 h-100 object-fit-cover"
+                src=""
+                alt="Obra de Arte"
+              />
+            </div>
+            <div class="card-body d-flex flex-column flex-grow-1">
+              <h3 class="card-title h6 mb-3 text-truncate">Título</h3>
+              <div class="price-row mb-auto">
+                <span class="text-muted small d-block">Puja Actual</span>
+                <strong class="card-precio-actual text-gold fs-5">0</strong>
+                <span class="text-gold">€</span>
+              </div>
+              <div
+                class="timer-container mt-3 mb-3 p-2 border border-secondary rounded text-center"
+                style="background: var(--black)"
+              >
+                <span class="text-muted small d-block mb-1"
+                  >Tiempo Restante</span
+                >
+                <div class="countdown-display text-gold font-monospace">
+                  --:--:--
+                </div>
+              </div>
+              <button class="card-btn btn-gold w-100 mt-auto" data-id="">
+                Inspeccionar Lote
+              </button>
+            </div>
+          </article>
+        </div>
+      </template>
+    </main>
+
+    <section id="view-detail" class="container mt-4" style="display: none">
+      <button
+        onclick="showCatalog()"
+        class="btn btn-outline-secondary text-gold mb-4 border-secondary"
+      >
+        ← Retornar al Catálogo
+      </button>
+      <div class="row">
+        <div class="col-lg-8 mb-4 detail-info">
+          <h2 id="detail-title" class="text-gold">Cargando...</h2>
+          <img
+            id="detail-image"
+            class="detail-main-img img-fluid"
+            src=""
+            alt="Obra en detalle"
+          />
+          <div
+            class="info-box mt-3 p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="h5 text-gold">Certificación de Autenticidad</h3>
+            <p id="detail-desc" class="text-light">...</p>
+            <hr class="border-secondary" />
+            <h3 class="h5 text-gold">Perfil del Artista</h3>
+            <p id="detail-bio" class="text-muted">...</p>
+          </div>
+        </div>
+
+        <div class="col-lg-4 detail-action">
+          <div
+            class="bid-panel p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="h5 text-gold">Mesa de Negociación</h3>
+            <div
+              id="detail-timer"
+              class="text-danger font-monospace mb-2"
+              style="font-size: 1.2rem"
+            >
+              --:--:--
+            </div>
+            <p class="current-bid">
+              Valor a Batir:
+              <strong id="current-precio-actual" class="text-gold">0</strong> €
+            </p>
+            <form id="bid-form">
+              <input type="hidden" id="input-id-obra" value="" />
+              <label for="input-monto" class="text-muted mb-1"
+                >Oferta en firme (€):</label
+              >
+              <input
+                type="number"
+                id="input-monto"
+                required
+                step="0.01"
+                class="form-control mb-3"
+              />
+              <button type="submit" id="btn-submit-bid" class="btn-gold w-100">
+                Sellar Transacción
+              </button>
+            </form>
+          </div>
+
+          <div
+            class="chart-panel mt-4 p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5">Evolución del Valor</h3>
+            <canvas id="price-chart" height="200"></canvas>
+          </div>
+
+          <div
+            class="history-panel mt-4 p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5">Libro de Registros</h3>
+            <div id="artwork-bids-table"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-profile" class="container mt-4" style="display: none">
+      <h2 class="section-title">Perfil del Ciudadano</h2>
+      <div class="row g-4 mt-2">
+        <div class="col-lg-4">
+          <div
+            class="card-auction p-4 text-center h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5 mb-4">Capital Desplegado</h3>
+            <canvas id="profile-chart"></canvas>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5 mb-4">Credenciales y KPIs</h3>
+            <ul class="list-unstyled" style="font-size: 1.1rem; line-height: 2">
+              <li>
+                <strong class="text-muted">Rango Oficial:</strong>
+                <span id="profile-rol" class="text-gold fw-bold text-uppercase"
+                  >...</span
+                >
+              </li>
+              <li>
+                <strong class="text-muted">Estado de la cuenta:</strong>
+                <span class="badge bg-success">Activo / Verificado</span>
+              </li>
+              <li class="mt-3">
+                <strong class="text-muted">Emblemas Adquiridos:</strong> <br />
+                <span
+                  class="badge border border-warning text-warning bg-dark p-2 mt-2 me-2"
+                  >🏛️ Coleccionista Imperial</span
+                >
+                <span
+                  class="badge border border-secondary text-secondary bg-dark p-2 mt-2"
+                  >📜 Ciudadano de Roma</span
+                >
+              </li>
+            </ul>
+
+            <div
+              id="upgrade-artist-section"
+              class="mt-4 pt-4 border-top border-secondary text-center"
+              style="display: none"
+            >
+              <h4 class="text-gold mb-3">
+                <i class="fa-solid fa-palette"></i> ¿Tienes arte que compartir
+                con el mundo?
+              </h4>
+              <p class="text-muted small mb-3">
+                Desbloquea tu Taller personal, forja tus propias obras y
+                ofrécelas a los mecenas más exclusivos del imperio.
+              </p>
+              <button
+                onclick="upgradeToArtist()"
+                class="btn-gold px-4 py-2"
+                style="font-size: 1.1rem; border-radius: 5px"
+              >
+                Adquirir Licencia de Creador (19,99 €)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-workshop" class="container mt-4" style="display: none">
+      <h2 class="section-title">El Taller del Artista</h2>
+      <p class="text-muted mb-4">
+        Gestión de inventario, forja de nuevas obras y análisis de mercado.
+      </p>
+      <div
+        id="workshop-content"
+        class="border border-secondary p-4 rounded"
+        style="background: var(--dark-gray)"
+      ></div>
+
+      <template id="form-subir-obra-template">
+        <div class="form-container-fade-in">
+          <h3 class="text-gold mb-4">Aportar Nuevo Lote a la Bóveda</h3>
+          <form id="form-nueva-obra" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="text-muted small">Título de la Obra</label>
+              <input
+                type="text"
+                name="titulo"
+                class="form-control"
+                required
+                placeholder="Ej. El Ocaso de Adriano"
+              />
+            </div>
+            <div class="mb-3">
+              <label class="text-muted small"
+                >Descripción y Certificaciones</label
+              >
+              <textarea
+                name="descripcion"
+                class="form-control"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="text-muted small">Precio Salida (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  name="precio"
+                  class="form-control"
+                  required
+                />
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small">Fecha Cierre</label>
+                <input
+                  type="datetime-local"
+                  name="fecha_fin"
+                  class="form-control"
+                  required
+                />
               </div>
             </div>
-            <button class="card-btn btn-gold w-100 mt-auto" data-id="">
-              Inspeccionar Lote
-            </button>
-          </div>
-        </article>
-      </div>
-    </template>
-  </main>
-
-  <section id="view-detail" class="container mt-4" style="display: none">
-    <button onclick="showCatalog()" class="btn btn-outline-secondary text-gold mb-4 border-secondary">
-      ← Retornar al Catálogo
-    </button>
-    <div class="row">
-      <div class="col-lg-8 mb-4 detail-info">
-        <h2 id="detail-title" class="text-gold">Cargando...</h2>
-        <img id="detail-image" class="detail-main-img img-fluid" src="" alt="Obra en detalle" />
-        <div class="info-box mt-3 p-4 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="h5 text-gold">Certificación de Autenticidad</h3>
-          <p id="detail-desc" class="text-light">...</p>
-          <hr class="border-secondary" />
-          <h3 class="h5 text-gold">Perfil del Artista</h3>
-          <p id="detail-bio" class="text-muted">...</p>
-        </div>
-      </div>
-
-      <div class="col-lg-4 detail-action">
-        <div class="bid-panel p-4 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="h5 text-gold">Mesa de Negociación</h3>
-          <div id="detail-timer" class="text-danger font-monospace mb-2" style="font-size: 1.2rem">
-            --:--:--
-          </div>
-          <p class="current-bid">
-            Valor a Batir:
-            <strong id="current-precio-actual" class="text-gold">0</strong> €
-          </p>
-          <form id="bid-form">
-            <input type="hidden" id="input-id-obra" value="" />
-            <label for="input-monto" class="text-muted mb-1">Oferta en firme (€):</label>
-            <input type="number" id="input-monto" required step="0.01" class="form-control mb-3" />
-            <button type="submit" id="btn-submit-bid" class="btn-gold w-100">
-              Sellar Transacción
-            </button>
+            <div class="mb-4">
+              <label class="text-muted small"
+                >Imagen de la Obra (JPG/PNG/WEBP)</label
+              >
+              <input
+                type="file"
+                name="imagen"
+                class="form-control"
+                accept="image/*"
+                required
+              />
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn-gold w-100">
+                Publicar en Bóveda
+              </button>
+              <button
+                type="button"
+                onclick="loadWorkshopData()"
+                class="btn-outline w-50"
+              >
+                Cancelar
+              </button>
+            </div>
           </form>
+          <div id="upload-feedback" class="mt-3 font-monospace small"></div>
         </div>
+      </template>
+    </section>
 
-        <div class="chart-panel mt-4 p-4 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="text-gold h5">Evolución del Valor</h3>
-          <canvas id="price-chart" height="200"></canvas>
+    <section id="view-vault" class="container mt-4" style="display: none">
+      <div
+        class="vault-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3"
+      >
+        <div>
+          <h2 class="section-title mb-0">Mi Bóveda Personal</h2>
+          <p class="text-muted mb-0">
+            Gestión de activos y registro de licitaciones.
+          </p>
         </div>
-
-        <div class="history-panel mt-4 p-4 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="text-gold h5">Libro de Registros</h3>
-          <div id="artwork-bids-table"></div>
-        </div>
+        <button onclick="openDepositModal()" class="btn-gold">
+          <i class="fa-solid fa-plus"></i> Ingresar Fondos
+        </button>
       </div>
-    </div>
-  </section>
 
-  <section id="view-profile" class="container mt-4" style="display: none">
-    <h2 class="section-title">Perfil del Ciudadano</h2>
-    <div class="row g-4 mt-2">
-      <div class="col-lg-4">
-        <div class="card-auction p-4 text-center h-100 border border-secondary rounded"
-          style="background: var(--dark-gray)">
-          <h3 class="text-gold h5 mb-4">Capital Desplegado</h3>
-          <canvas id="profile-chart"></canvas>
-        </div>
-      </div>
-      <div class="col-lg-8">
-        <div class="card-auction p-4 h-100 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="text-gold h5 mb-4">Credenciales y KPIs</h3>
-          <ul class="list-unstyled" style="font-size: 1.1rem; line-height: 2">
-            <li>
-              <strong class="text-muted">Rango Oficial:</strong>
-              <span id="profile-rol" class="text-gold fw-bold text-uppercase">...</span>
-            </li>
-            <li>
-              <strong class="text-muted">Estado de la cuenta:</strong>
-              <span class="badge bg-success">Activo / Verificado</span>
-            </li>
-            <li class="mt-3">
-              <strong class="text-muted">Emblemas Adquiridos:</strong> <br />
-              <span class="badge border border-warning text-warning bg-dark p-2 mt-2 me-2">🏛️ Coleccionista
-                Imperial</span>
-              <span class="badge border border-secondary text-secondary bg-dark p-2 mt-2">📜 Ciudadano de Roma</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="view-workshop" class="container mt-4" style="display: none">
-    <h2 class="section-title">El Taller del Artista</h2>
-    <p class="text-muted mb-4">
-      Gestión de inventario, forja de nuevas obras y análisis de mercado.
-    </p>
-    <div id="workshop-content" class="border border-secondary p-4 rounded" style="background: var(--dark-gray)"></div>
-
-    <template id="form-subir-obra-template">
-      <div class="form-container-fade-in">
-        <h3 class="text-gold mb-4">Aportar Nuevo Lote a la Bóveda</h3>
-        <form id="form-nueva-obra" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label class="text-muted small">Título de la Obra</label>
-            <input type="text" name="titulo" class="form-control" required placeholder="Ej. El Ocaso de Adriano" />
-          </div>
-          <div class="mb-3">
-            <label class="text-muted small">Descripción y Certificaciones</label>
-            <textarea name="descripcion" class="form-control" rows="3" required></textarea>
-          </div>
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="text-muted small">Precio Salida (€)</label>
-              <input type="number" step="0.01" min="1" name="precio" class="form-control" required />
+      <div class="row g-4">
+        <div class="col-lg-4">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5">Estado de Cuenta</h3>
+            <hr class="border-secondary" />
+            <div class="d-flex justify-content-between mb-2">
+              <span>Saldo Total:</span
+              ><span id="vault-total" class="fw-bold">0.00 €</span>
             </div>
-            <div class="col-md-6">
-              <label class="text-muted small">Fecha Cierre</label>
-              <input type="datetime-local" name="fecha_fin" class="form-control" required />
+            <div class="d-flex justify-content-between mb-2">
+              <span>En Pujas (Bloqueado):</span
+              ><span id="vault-blocked" class="text-muted">0.00 €</span>
+            </div>
+            <div
+              class="d-flex justify-content-between mt-3 pt-3 border-top border-secondary"
+            >
+              <span>Disponible:</span
+              ><span
+                id="vault-available"
+                class="text-gold fw-bold"
+                style="font-size: 1.2rem"
+                >0.00 €</span
+              >
             </div>
           </div>
-          <div class="mb-4">
-            <label class="text-muted small">Imagen de la Obra (JPG/PNG/WEBP)</label>
-            <input type="file" name="imagen" class="form-control" accept="image/*" required />
-          </div>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn-gold w-100">
-              Publicar en Bóveda
-            </button>
-            <button type="button" onclick="loadWorkshopData()" class="btn-outline w-50">
-              Cancelar
-            </button>
-          </div>
-        </form>
-        <div id="upload-feedback" class="mt-3 font-monospace small"></div>
-      </div>
-    </template>
-  </section>
-
-  <section id="view-vault" class="container mt-4" style="display: none">
-    <div class="vault-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-      <div>
-        <h2 class="section-title mb-0">Mi Bóveda Personal</h2>
-        <p class="text-muted mb-0">
-          Gestión de activos y registro de licitaciones.
-        </p>
-      </div>
-      <button onclick="openDepositModal()" class="btn-gold">
-        <i class="fa-solid fa-plus"></i> Ingresar Fondos
-      </button>
-    </div>
-
-    <div class="row g-4">
-      <div class="col-lg-4">
-        <div class="card-auction p-4 h-100 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="text-gold h5">Estado de Cuenta</h3>
-          <hr class="border-secondary" />
-          <div class="d-flex justify-content-between mb-2">
-            <span>Saldo Total:</span><span id="vault-total" class="fw-bold">0.00 €</span>
-          </div>
-          <div class="d-flex justify-content-between mb-2">
-            <span>En Pujas (Bloqueado):</span><span id="vault-blocked" class="text-muted">0.00 €</span>
-          </div>
-          <div class="d-flex justify-content-between mt-3 pt-3 border-top border-secondary">
-            <span>Disponible:</span><span id="vault-available" class="text-gold fw-bold" style="font-size: 1.2rem">0.00
-              €</span>
+        </div>
+        <div class="col-lg-8">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5">Mis Pujas en Curso</h3>
+            <div id="vault-bids-table"></div>
           </div>
         </div>
       </div>
-      <div class="col-lg-8">
-        <div class="card-auction p-4 h-100 border border-secondary rounded" style="background: var(--dark-gray)">
-          <h3 class="text-gold h5">Mis Pujas en Curso</h3>
-          <div id="vault-bids-table"></div>
-        </div>
+    </section>
+
+    <section id="view-admin" class="container mt-4" style="display: none">
+      <h2 class="section-title">Mesa del Senado</h2>
+      <p class="text-muted mb-4">
+        Validación de lotes pendientes y supervisión de la plataforma.
+      </p>
+      <div
+        id="admin-content"
+        class="border border-secondary p-4 rounded mb-4"
+        style="background: var(--dark-gray)"
+      >
+        <h3 class="text-gold h5 mb-3">Obras Pendientes de Revisión</h3>
+        <div id="admin-pending-table"></div>
       </div>
-    </div>
-  </section>
+      <div
+        id="admin-users-panel"
+        class="border border-secondary p-4 rounded"
+        style="background: var(--dark-gray)"
+      >
+        <h3 class="text-gold h5 mb-3">Gestión de Ciudadanos (Usuarios)</h3>
+        <div id="admin-users-table"></div>
+      </div>
+    </section>
 
-  <section id="view-admin" class="container mt-4" style="display: none">
-    <h2 class="section-title">Mesa del Senado</h2>
-    <p class="text-muted mb-4">
-      Validación de lotes pendientes y supervisión de la plataforma.
-    </p>
-
-    <div id="admin-content" class="border border-secondary p-4 rounded mb-4" style="background: var(--dark-gray)">
-      <h3 class="text-gold h5 mb-3">Obras Pendientes de Revisión</h3>
-      <div id="admin-pending-table"></div>
-    </div>
-
-    <div id="admin-users-panel" class="border border-secondary p-4 rounded" style="background: var(--dark-gray)">
-      <h3 class="text-gold h5 mb-3">Gestión de Ciudadanos (Usuarios)</h3>
-      <div id="admin-users-table"></div>
-    </div>
-  </section>
-
-  <div id="modal-deposit" class="modal-overlay" style="
+    <div
+      id="modal-deposit"
+      class="modal-overlay"
+      style="
         display: none;
         position: fixed;
         top: 0;
@@ -375,46 +668,84 @@
         align-items: center;
         justify-content: center;
         z-index: 1050;
-      ">
-    <div class="modal-content card-auction p-4 border border-secondary rounded"
-      style="max-width: 400px; width: 90%; background: var(--dark-gray)">
-      <h3 class="text-gold mb-3">Aumentar Capital</h3>
-      <p class="text-muted small mb-4">
-        Ingrese la cuantía que desea transferir a su cuenta de mecenazgo.
-      </p>
-      <form id="form-deposit" onsubmit="event.preventDefault();">
-        <div class="mb-4">
-          <label class="text-muted small d-block mb-2">Cuantía (€)</label>
-          <input type="number" id="deposit-amount" class="form-control" placeholder="0.00" min="10" step="10"
-            required />
-        </div>
+      "
+    >
+      <div
+        class="modal-content card-auction p-4 border border-secondary rounded"
+        style="
+          max-width: 400px;
+          width: 90%;
+          background: var(--dark-gray);
+          max-height: 90vh;
+          overflow-y: auto;
+        "
+      >
+        <h3 class="text-gold mb-3">Aumentar Capital</h3>
+        <p class="text-muted small mb-4">
+          Ingrese la cuantía que desea transferir a su cuenta de mecenazgo.
+        </p>
 
-        <div id="paypal-button-container" class="mt-3"></div>
+        <form id="form-deposit" onsubmit="event.preventDefault()">
+          <div class="mb-4">
+            <label class="text-muted small d-block mb-2">Cuantía (€)</label>
+            <input
+              type="number"
+              id="deposit-amount"
+              class="form-control"
+              placeholder="0.00"
+              min="10"
+              step="10"
+              required
+            />
+          </div>
 
-        <button type="button" onclick="closeDepositModal()" class="btn-outline w-100 mt-2">
-          Cancelar
-        </button>
-      </form>
+          <div id="paypal-button-container" class="mt-3"></div>
+
+          <button
+            type="button"
+            onclick="closeDepositModal()"
+            class="btn-outline w-100 mt-2"
+          >
+            Cancelar
+          </button>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <footer class="mt-5 py-4 border-top border-secondary text-center" style="background: var(--black)">
-    <div class="container">
-      <p class="text-muted small mb-2">
-        &copy; 2026 AUREUS. Imperio de Subastas Exclusivas.
-      </p>
-      <nav aria-label="Enlaces de pie de página">
-        <a href="#" class="text-gold mx-2 small text-decoration-none" tabindex="0">Términos Legales</a>
-        <a href="#" class="text-gold mx-2 small text-decoration-none" tabindex="0">Accesibilidad</a>
-        <a href="#" class="text-gold mx-2 small text-decoration-none" tabindex="0">Soporte al Mecenas</a>
-      </nav>
-    </div>
-  </footer>
+    <footer
+      class="mt-5 py-4 border-top border-secondary text-center"
+      style="background: var(--black)"
+    >
+      <div class="container">
+        <p class="text-muted small mb-2">
+          &copy; 2026 AUREUS. Imperio de Subastas Exclusivas.
+        </p>
+        <nav aria-label="Enlaces de pie de página">
+          <a
+            href="#"
+            class="text-gold mx-2 small text-decoration-none"
+            tabindex="0"
+            >Términos Legales</a
+          >
+          <a
+            href="#"
+            class="text-gold mx-2 small text-decoration-none"
+            tabindex="0"
+            >Accesibilidad</a
+          >
+          <a
+            href="#"
+            class="text-gold mx-2 small text-decoration-none"
+            tabindex="0"
+            >Soporte al Mecenas</a
+          >
+        </nav>
+      </div>
+    </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="module" src="js/main.js"></script>
-  <script
-    src="https://www.paypal.com/sdk/js?client-id=AV6U32dmQP_D374qGRyhD3_THQPhwQ_HOOSdoVDljYflDlc4UqniKdwYWV9tCjANmc_niIpZHUfgoW_Q&currency=EUR"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/main.js"></script>
 
+    <script src="https://www.paypal.com/sdk/js?client-id=AV6U32dmQP_D374qGRyhD3_THQPhwQ_HOOSdoVDljYflDlc4UqniKdwYWV9tCjANmc_niIpZHUfgoW_Q&currency=EUR"></script>
+  </body>
 </html>

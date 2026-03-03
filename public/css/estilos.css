@@ -222,3 +222,19 @@ span.text-muted {
 .tabulator-row .tabulator-cell {
   border-right: 1px solid var(--border);
 }
+
+/* ==========================================================================
+   ESTADOS DE TARJETAS (Obras Finalizadas)
+   ========================================================================== */
+.card-auction.terminado {
+  opacity: 0.4; /* Lo hacemos semi-transparente */
+  filter: grayscale(80%); /* Apagamos los colores */
+  border-color: #333 !important;
+  transition: all 0.3s ease;
+}
+
+/* Un pequeño detalle UX: si pasan el ratón, recobra un poco de vida */
+.card-auction.terminado:hover {
+  opacity: 0.8;
+  filter: grayscale(20%);
+}

@@ -58,8 +58,9 @@ class Usuario {
      * Obtiene los saldos y el rol de un usuario por su ID.
      * Reemplaza a vuestro antiguo 'get_user.php'
      */
-    public function obtenerPorId($id_usuario) {
-        $sql = "SELECT nombre, saldo_disponible, saldo_bloqueado, es_artista, rol FROM usuario WHERE id_usuario = ?";
+ public function obtenerPorId($id_usuario) {
+        // Usamos id_usuario que es el nombre real en tu tabla
+        $sql = "SELECT id_usuario, nombre, saldo_disponible, saldo_bloqueado, es_artista, rol FROM usuario WHERE id_usuario = ?";
         
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id_usuario);
@@ -67,9 +68,11 @@ class Usuario {
         $resultado = $stmt->get_result();
 
         if ($fila = $resultado->fetch_assoc()) {
-            return $fila; // Devuelve el registro de la BD
+            // Sincronizamos el nombre del campo para el Frontend
+            $fila['id'] = $fila['id_usuario']; 
+            return $fila;
         }
-        return null; // Si no lo encuentra
+        return null;
     }
 
         /**
@@ -140,6 +143,73 @@ class Usuario {
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id_usuario);
         
+        return $stmt->execute();
+    }
+
+ /**
+     * Cobra la licencia, cambia el rol y registra el movimiento.
+     */
+/**
+     * Cobra la licencia, cambia el rol y registra el movimiento.
+     * (Versión MySQLi)
+     */
+    public function pagarLicenciaArtista($id_usuario) {
+        $coste = 19.99;
+
+        try {
+            // 1. Desactivamos el autocommit para iniciar la transacción en MySQLi
+            $this->db->autocommit(FALSE);
+
+            // 2. Verificamos si tiene saldo suficiente
+            $sql_check = "SELECT saldo_disponible FROM usuario WHERE id_usuario = ?";
+            $stmt_check = $this->db->prepare($sql_check);
+            $stmt_check->bind_param("i", $id_usuario);
+            $stmt_check->execute();
+            $resultado = $stmt_check->get_result();
+            $user = $resultado->fetch_assoc();
+
+            if (!$user || $user['saldo_disponible'] < $coste) {
+                $this->db->rollback(); // Cancelamos si no hay dinero
+                $this->db->autocommit(TRUE); // Restauramos el comportamiento normal
+                return "Capital insuficiente. Requiere 19,99 € en Saldo Disponible.";
+            }
+
+            // 3. Le cobramos y le damos los galones de artista
+            $sql_update = "UPDATE usuario SET saldo_disponible = saldo_disponible - ?, rol = 'artista', es_artista = 1 WHERE id_usuario = ?";
+            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update->bind_param("di", $coste, $id_usuario);
+            $stmt_update->execute();
+
+            // 4. Registramos el pago en el log del sistema (ya que no existe tabla transaccion en tu SQL)
+            $accion = 'PAGO_LICENCIA';
+            $detalle = "Mecenas ID {$id_usuario} adquiere Licencia de Creador por {$coste}€";
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+            $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, ip) VALUES (?, ?, ?, ?)";
+            $stmt_log = $this->db->prepare($sql_log);
+            $stmt_log->bind_param("isss", $id_usuario, $accion, $detalle, $ip);
+            $stmt_log->execute();
+
+            // 5. Confirmamos los cambios de la transacción
+            $this->db->commit();
+            $this->db->autocommit(TRUE); // Restauramos el comportamiento normal
+            return true;
+
+        } catch (Exception $e) {
+            // Si cualquier consulta falla, deshacemos todo
+            $this->db->rollback();
+            $this->db->autocommit(TRUE);
+            return "Error en la bóveda: " . $e->getMessage();
+        }
+    }
+
+    /**
+     * Levanta el castigo y vuelve a activar al usuario (Desbaneo).
+     */
+    public function amnistiarUsuario($id_usuario) {
+        $sql = "UPDATE usuario SET activo = 1 WHERE id_usuario = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $id_usuario);
         return $stmt->execute();
     }
 }
