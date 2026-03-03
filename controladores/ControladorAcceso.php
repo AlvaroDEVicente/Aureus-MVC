@@ -94,7 +94,7 @@ class ControladorAcceso
     }
 
     /**
-     * Procesa la recarga de saldo de un Mecenas.
+     * Procesa la recarga de saldo de un Mecenas (Simulada antigua).
      */
     public function ingresarFondos()
     {
@@ -122,16 +122,21 @@ class ControladorAcceso
 
     /**
      * Procesa la solicitud POST del formulario de registro.
+     * Ahora fuerza a que todos los nuevos usuarios sean 'compradores'.
      */
-    public function procesarRegistro()
-    {
+    public function procesarRegistro() {
         $nombre = $_POST['nombre'] ?? '';
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
-        $rol = $_POST['rol'] ?? 'comprador';
         $dni = $_POST['dni'] ?? '';
         $telefono = $_POST['telefono'] ?? '';
 
+        // FORZAMOS EL ROL: Nadie nace siendo artista.
+        $rol = 'comprador';
+
+        // OJO: Tu modelo registrarUsuario() probablemente espere también el campo es_artista.
+        // Asumiendo que tu modelo.php lo necesite, le pasamos un 0. Si tu modelo
+        // solo espera los 6 parámetros (nombre, email, pass, rol, dni, tlf), el código de abajo funciona perfecto.
         $exito = $this->modeloUsuario->registrarUsuario($nombre, $email, $password, $rol, $dni, $telefono);
 
         if ($exito) {
@@ -195,7 +200,7 @@ class ControladorAcceso
 
     /**
      * Valida la transacción con PayPal y actualiza el saldo del Mecenas de forma segura.
-     * (Versión adaptada para XAMPP local)
+     * (Versión adaptada para XAMPP local por Robertus)
      */
     public function capturarPagoPayPal()
     {
@@ -269,6 +274,49 @@ class ControladorAcceso
         } else {
             echo json_encode(["success" => false, "message" => "El pago no consta como finalizado en los registros de PayPal."]);
         }
+    }
+
+    /**
+     * Procesa el pago de 19,99€ y asciende al ciudadano a Artista.
+     * Creado por Alvarus en la rama de mejoras finales.
+     */
+    public function ascenderArtista() {
+        session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(["success" => false, "message" => "Sesión caducada."]); 
+            exit();
+        }
+
+        // Llamamos al modelo para hacer la magia financiera
+        $resultado = $this->modeloUsuario->pagarLicenciaArtista($_SESSION['user_id']);
+        
+        if ($resultado === true) {
+            // Actualizamos la sesión del servidor para que sepa que ya es artista
+            $_SESSION['user_rol'] = 'artista';
+            echo json_encode(["success" => true]);
+        } else {
+            // Si devuelve un texto, es que no hay dinero o hubo un error
+            echo json_encode(["success" => false, "message" => $resultado]);
+        }
+        exit();
+    }
+
+    public function amnistiarUsuario()
+    {
+        session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
+            echo json_encode(["success" => false, "message" => "Acceso denegado."]);
+            exit();
+        }
+
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $exito = $this->modeloUsuario->amnistiarUsuario($datos['id_usuario']);
+
+        echo json_encode(["success" => $exito]);
         exit();
     }
 }

@@ -137,33 +137,6 @@ class ControladorSubasta
     }
 
     /**
-     * Cambia el estado de una obra a 'ACTIVA' tras la validación del Administrador.
-     */
-    public function aprobarObra()
-    {
-        session_start();
-        header('Content-Type: application/json');
-
-        // Blindaje: Comprobar que hay sesión y que el rol es 'admin'
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'admin') {
-            echo json_encode(["success" => false, "message" => "Acceso denegado. Se requiere rango de Senador."]);
-            exit();
-        }
-
-        $datos = json_decode(file_get_contents("php://input"), true);
-        $id_obra = (int) $datos['id_obra'];
-
-        $exito = $this->modeloObra->aprobarObra($id_obra);
-
-        if ($exito) {
-            echo json_encode(["success" => true]);
-        } else {
-            echo json_encode(["success" => false, "message" => "Fallo en la actualización del estado."]);
-        }
-        exit();
-    }
-
-    /**
      * Devuelve los detalles de una obra específica junto con su historial de pujas.
      */
     public function obtenerDetalleObra()
@@ -189,7 +162,7 @@ class ControladorSubasta
             return $h;
         }, $historial);
 
-        echo json_encode([
+echo json_encode([
             "id_obra" => $obra['id_obra'],
             "titulo" => $obra['titulo'],
             "descripcion" => $obra['descripcion'],
@@ -197,8 +170,10 @@ class ControladorSubasta
             "precio_actual" => (float) $obra['precio_actual'],
             "fecha_fin" => $obra['fecha_fin'],
             "biografia_artista" => $obra['biografia'] ?? "Sin biografía disponible.",
-            "history" => $historial_formateado
+            "history" => $historial_formateado,
+            "id_vendedor" => $obra['id_vendedor'] 
         ]);
+        exit();
         exit();
     }
 
@@ -302,5 +277,41 @@ class ControladorSubasta
         exit();
     }
 
+// Reemplaza desde "public function obtenerDetalleRevision()" hacia abajo con esto:
+
+    public function obtenerDetalleRevision() {
+        session_start();
+        header('Content-Type: application/json');
+        
+        if ($_SESSION['user_rol'] !== 'admin') { 
+            echo json_encode(["error" => "No autorizado"]); 
+            exit(); 
+        }
+
+        $id = $_GET['id'] ?? 0;
+        $obra = $this->modeloObra->obtenerDetalleCompleto($id);
+        
+        echo json_encode($obra);
+        exit();
+    }
+
+    public function aprobarObra() {
+        session_start();
+        header('Content-Type: application/json');
+
+        if ($_SESSION['user_rol'] !== 'admin') { 
+            echo json_encode(["success" => false, "message" => "Acceso denegado"]); 
+            exit(); 
+        }
+
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $id_obra = (int)($datos['id_obra'] ?? 0);
+
+        // Aquí llamamos al método unificado del modelo
+        $exito = $this->modeloObra->cambiarEstadoObra($id_obra, 'ACTIVA');
+        
+        echo json_encode(["success" => $exito]);
+        exit();
+    }
 }
 ?>

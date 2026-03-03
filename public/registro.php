@@ -28,13 +28,9 @@ if(isset($_SESSION['user_id'])) {
 <body>
     <nav class="navbar navbar-dark bg-dark mb-4" style="border-bottom: 1px solid #333;">
         <div class="container">
-                    <a class="navbar-brand" href="#">
-          <img
-            src="./img/Aureus_logo.png"
-            alt="Logo AUREUS"
-            style="height: 100px; width: auto; object-fit: contain"
-          />
-        </a>
+            <<a class="navbar-brand" href="index.html" style="cursor: pointer;">
+  <img src="./img/Aureus_logo.png" alt="Logo AUREUS" style="height: 100px; width: auto; object-fit: contain" />
+</a>
         </div>
     </nav>
 
@@ -79,15 +75,7 @@ if(isset($_SESSION['user_id'])) {
                                     <label class="form-label text-muted">Teléfono</label>
                                     <input type="tel" name="telefono" class="form-control bg-dark text-light border-secondary" required>
                                 </div>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label class="form-label text-muted">¿Cuál es su propósito en Aureus?</label>
-                                <select name="rol" class="form-select bg-dark text-light border-secondary">
-                                    <option value="comprador">Exclusivamente Coleccionista (Comprar)</option>
-                                    <option value="artista">Creador de Arte (Vender y Comprar)</option>
-                                </select>
-                            </div>
+                            </div>                 
 
                             <button type="submit" class="btn btn-gold w-100 py-2">Solicitar Ingreso</button>
                         </form>

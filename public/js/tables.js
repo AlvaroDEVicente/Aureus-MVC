@@ -5,7 +5,7 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
-      height: "320px", // Un pelín más alto para rellenar el hueco
+      height: "auto", // Un pelín más alto para rellenar el hueco
       columns: [
         // 1. Damos todo el espacio dinámico al título de la obra
         { title: "Obra", field: "titulo_obra", widthGrow: 1 },
@@ -96,13 +96,22 @@ export const tablas = {
       ],
     }),
 
-  crearAdminUsuarios: (id, datos, cbCambioRol, cbBorrar) =>
+  crearAdminUsuarios: (id, datos, cbCambioRol, cbBorrar, cbAmnistiar) =>
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
       columns: [
         { title: "ID", field: "id_usuario", width: 60 },
-        { title: "Nombre", field: "nombre", widthGrow: 2 },
+        {
+          title: "Nombre",
+          field: "nombre",
+          widthGrow: 2,
+          // Si está baneado (activo=0), tachamos el nombre
+          formatter: (cell) =>
+            cell.getData().activo == 0
+              ? `<span style="text-decoration: line-through; color: #888;">${cell.getValue()}</span>`
+              : cell.getValue(),
+        },
         { title: "Email", field: "email", widthGrow: 2 },
         {
           title: "Saldo",
@@ -125,12 +134,23 @@ export const tablas = {
           cellEdited: (cell) => cbCambioRol(cell.getData()),
         },
         {
-          title: "Expulsar",
-          formatter: () =>
-            `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Borrar</button>`,
+          title: "Acción",
+          formatter: (cell) => {
+            if (cell.getData().activo == 1) {
+              return `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #dc3545; border-color: #dc3545;">Desterrar</button>`;
+            } else {
+              return `<button class="btn-outline" style="padding: 2px 8px; font-size: 0.8rem; color: #28a745; border-color: #28a745;">Amnistiar</button>`;
+            }
+          },
           hozAlign: "center",
           headerSort: false,
-          cellClick: (e, cell) => cbBorrar(cell.getData().id_usuario),
+          cellClick: (e, cell) => {
+            if (cell.getData().activo == 1) {
+              cbBorrar(cell.getData().id_usuario);
+            } else {
+              cbAmnistiar(cell.getData().id_usuario);
+            }
+          },
         },
       ],
     }),
