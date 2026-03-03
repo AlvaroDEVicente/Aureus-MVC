@@ -17,6 +17,16 @@ let activeTimers = [];
 let detailTimer = null;
 let globalTickerTable = null;
 
+// ==========================================================
+// HERRAMIENTA DE FORMATO DE MONEDA (UX)
+// ==========================================================
+function formatearDinero(cantidad) {
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+  }).format(cantidad);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   loadUserData();
   loadCatalog();
@@ -123,12 +133,12 @@ async function loadUserData() {
       balancesBox.style.display = "none";
     }
   } else {
-    document.getElementById("nav-saldo-disponible").innerText = Number(
+    document.getElementById("nav-saldo-disponible").innerText = formatearDinero(
       user.saldo_disponible,
-    ).toFixed(2);
-    document.getElementById("nav-saldo-bloqueado").innerText = Number(
+    );
+    document.getElementById("nav-saldo-bloqueado").innerText = formatearDinero(
       user.saldo_bloqueado,
-    ).toFixed(2);
+    );
     document.getElementById("nav-vault-btn").style.display = "inline-block";
   }
 
@@ -251,9 +261,9 @@ function renderCatalog(artworksToRender) {
     clone.querySelector(".card-title").innerText = art.titulo;
     clone.querySelector(".card-image").src =
       art.imagen_url || "./img/default_obra.png";
-    clone.querySelector(".card-precio-actual").innerText = Number(
+    clone.querySelector(".card-precio-actual").innerText = formatearDinero(
       art.precio_actual,
-    ).toFixed(2);
+    );
 
     const btn = clone.querySelector(".card-btn");
     btn.addEventListener("click", () => openArtworkDetail(art.id_obra));
@@ -295,9 +305,9 @@ async function openArtworkDetail(id_obra) {
   document.getElementById("detail-image").src = data.imagen_url;
   document.getElementById("detail-desc").innerText = data.descripcion;
   document.getElementById("detail-bio").innerText = data.biografia_artista;
-  document.getElementById("current-precio-actual").innerText = Number(
+  document.getElementById("current-precio-actual").innerText = formatearDinero(
     data.precio_actual,
-  ).toFixed(2);
+  );
   document.getElementById("input-id-obra").value = data.id_obra;
   document.getElementById("input-monto").min = Number(data.precio_actual) + 50;
   document.getElementById("input-monto").value =
@@ -346,12 +356,10 @@ function setupBidForm() {
     };
     const result = await api.postJSON("sellar_transaccion", payload);
     if (result.success) {
-      document.getElementById("nav-saldo-disponible").innerText = Number(
-        result.nuevo_saldo_disponible,
-      ).toFixed(2);
-      document.getElementById("nav-saldo-bloqueado").innerText = Number(
-        result.nuevo_saldo_bloqueado,
-      ).toFixed(2);
+      document.getElementById("nav-saldo-disponible").innerText =
+        formatearDinero(result.nuevo_saldo_disponible);
+      document.getElementById("nav-saldo-bloqueado").innerText =
+        formatearDinero(result.nuevo_saldo_bloqueado);
       openArtworkDetail(payload.id_obra);
       alerta(
         "Transacción Sellada",
@@ -412,9 +420,9 @@ async function loadWorkshopData() {
 
     clone.querySelector(".card-title").innerText = art.titulo;
     clone.querySelector(".card-image").src = art.imagen_url;
-    clone.querySelector(".card-precio-actual").innerText = Number(
+    clone.querySelector(".card-precio-actual").innerText = formatearDinero(
       art.precio_actual,
-    ).toFixed(2);
+    );
 
     const btn = clone.querySelector(".card-btn");
     btn.disabled = true; // Botón inactivo, solo informativo
@@ -457,6 +465,60 @@ function openNewArtworkModal() {
 }
 
 async function loadAdminData() {
+  // ==========================================================
+  // 🟢 Llamada al Microservicio OLAP (Python FastAPI)
+  // ==========================================================
+  try {
+    const resPython = await fetch(
+      "http://localhost:8000/api/analytics/dashboard",
+    );
+    const jsonAnalytics = await resPython.json();
+
+    if (jsonAnalytics.success) {
+      const eco = jsonAnalytics.data.economico;
+      const users = jsonAnalytics.data.usuarios;
+
+      // -- Panel Económico --
+      document.getElementById("kpi-volumen").innerText = formatearDinero(
+        eco.volumen_negocio,
+      );
+      document.getElementById("kpi-mercado").innerText =
+        `${eco.mercado_activas} / ${eco.mercado_finalizadas}`;
+      document.getElementById("kpi-precio-medio").innerText = formatearDinero(
+        eco.precio_medio,
+      );
+      document.getElementById("kpi-custodia").innerText = formatearDinero(
+        eco.capital_custodia,
+      );
+
+      // -- Panel de Usuarios --
+      document.getElementById("kpi-total-usuarios").innerText =
+        users.total_usuarios;
+      document.getElementById("kpi-nuevos-usuarios").innerText =
+        `+ ${users.nuevos_semana}`;
+      document.getElementById("kpi-total-artistas").innerText =
+        users.total_artistas;
+
+      // -- Ranking Top Mecenas --
+      const topList = document.getElementById("kpi-top-mecenas");
+      topList.innerHTML = "";
+      if (users.top_mecenas.length > 0) {
+        users.top_mecenas.forEach((mecenas, i) => {
+          topList.innerHTML += `<li class="mb-1"><strong class="text-gold">#${i + 1}</strong> ${mecenas.nombre} <span class="float-end">${formatearDinero(mecenas.total_invertido)}</span></li>`;
+        });
+      } else {
+        topList.innerHTML =
+          "<li class='text-center text-muted'>Sin transacciones</li>";
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Fallo de conexión con el Oráculo Analítico (Python):",
+      error,
+    );
+  }
+  // ==========================================================
+
   const works = await api.get("obtener_pendientes");
   tablas.crearAdminPendientes(
     "#admin-pending-table",
@@ -579,13 +641,18 @@ async function loadAdminData() {
 
 async function loadVaultData() {
   const user = await api.get("obtener_usuario");
-  document.getElementById("vault-available").innerText =
-    Number(user.saldo_disponible).toFixed(2) + " €";
-  document.getElementById("vault-blocked").innerText =
-    Number(user.saldo_bloqueado).toFixed(2) + " €";
-  document.getElementById("vault-total").innerText =
-    (Number(user.saldo_disponible) + Number(user.saldo_bloqueado)).toFixed(2) +
-    " €";
+  document.getElementById("vault-available").innerText = formatearDinero(
+    user.saldo_disponible,
+  );
+  document.getElementById("vault-blocked").innerText = formatearDinero(
+    user.saldo_bloqueado,
+  );
+
+  // Sumamos los valores numéricos y luego formateamos el resultado
+  const total =
+    parseFloat(user.saldo_disponible) + parseFloat(user.saldo_bloqueado);
+  document.getElementById("vault-total").innerText = formatearDinero(total);
+
   const bids = await api.get("obtener_mis_pujas");
   tablas.crearBoveda("#vault-bids-table", bids || []);
 }
@@ -659,44 +726,4 @@ function setupDepositForm() {
       },
     })
     .render("#paypal-button-container");
-}
-
-// Dentro de loadAdminData, al configurar la tabla de pendientes:
-async function revisarObra(id) {
-  // 1. Buscamos los datos completos de la obra
-  const obra = await api.get("obtener_detalle_revision", `&id=${id}`);
-
-  // 2. Mostramos el "Expediente de Revisión"
-  Swal.fire({
-    title: `Revisión: ${obra.titulo}`,
-    html: `
-            <div class="text-start" style="color: #eee;">
-                <img src="${obra.imagen_url}" class="img-fluid rounded mb-3 border border-secondary">
-                <p><strong>Artista:</strong> ${obra.artista_nombre}</p>
-                <p><strong>Precio Salida:</strong> ${obra.precio_inicial} €</p>
-                <p><strong>Descripción:</strong></p>
-                <p class="text-muted small">${obra.descripcion}</p>
-                <hr style="border-color: #444;">
-                <p class="text-center text-gold">¿Cumple este lote con los estándares de AUREUS?</p>
-            </div>
-        `,
-    width: "600px",
-    background: "#181818",
-    showCancelButton: true,
-    confirmButtonText: '<i class="fa-solid fa-check"></i> Validar y Publicar',
-    cancelButtonText: "Cerrar",
-    confirmButtonColor: "#d4af37",
-    cancelButtonColor: "#333",
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      // 3. Si confirma, ejecutamos la aprobación real
-      const res = await api.postJSON("aprobar_obra", { id_obra: id });
-      if (res.success) {
-        alerta("Éxito", "La obra ya es pública en el catálogo.", "success");
-        loadAdminData(); // Recargamos la tabla
-      } else {
-        alerta("Error", "No se pudo validar la obra.", "error");
-      }
-    }
-  });
 }
