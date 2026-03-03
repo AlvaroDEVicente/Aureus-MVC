@@ -5,3 +5,8 @@ public/uploads/*
 # Ignorar archivos del sistema operativo
 .DS_Store
 Thumbs.db
+
+# Ignorar el entorno virtual de Python y archivos temporales
+api_python/.venv/
+api_python/__pycache__/
+*.pyc

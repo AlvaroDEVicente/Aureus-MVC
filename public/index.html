@@ -634,16 +634,143 @@
     <section id="view-admin" class="container mt-4" style="display: none">
       <h2 class="section-title">Mesa del Senado</h2>
       <p class="text-muted mb-4">
-        Validación de lotes pendientes y supervisión de la plataforma.
+        Supervisión de lotes, edictos sobre ciudadanos y consulta de métricas en
+        vivo al
+        <strong class="text-gold"
+          ><i class="fa-solid fa-chart-pie me-1"></i> Oráculo Analítico</strong
+        >.
       </p>
+
+      <div id="admin-kpis-panel" class="mb-5">
+        <h4
+          class="text-gold mb-3"
+          style="
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+          "
+        >
+          <i class="fa-solid fa-coins me-2"></i> Rendimiento Financiero
+        </h4>
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Volumen (Comisiones)
+              </h5>
+              <h3 class="text-gold mt-2 mb-0" id="kpi-volumen">... €</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Mercado (Activas/Fin.)
+              </h5>
+              <h3 class="text-gold mt-2 mb-0" id="kpi-mercado">...</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Precio Medio Venta
+              </h5>
+              <h3 class="text-light mt-2 mb-0" id="kpi-precio-medio">... €</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Capital en Custodia
+              </h5>
+              <h3 class="text-light mt-2 mb-0" id="kpi-custodia">... €</h3>
+            </div>
+          </div>
+        </div>
+
+        <h4
+          class="text-gold mb-3"
+          style="
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+          "
+        >
+          <i class="fa-solid fa-users me-2"></i> Comunidad y Mecenazgo
+        </h4>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Total Usuarios
+              </h5>
+              <h3 class="text-gold mt-2 mb-0" id="kpi-total-usuarios">...</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Nuevos (Últimos 7d)
+              </h5>
+              <h3 class="text-gold mt-2 mb-0" id="kpi-nuevos-usuarios">...</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card-auction p-3 border border-secondary rounded text-center h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase m-0">
+                Artistas Registrados
+              </h5>
+              <h3 class="text-light mt-2 mb-0" id="kpi-total-artistas">...</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card-auction p-2 border border-secondary rounded text-start h-100"
+              style="background: var(--dark-gray)"
+            >
+              <h5 class="text-muted small text-uppercase text-center m-0 mb-2">
+                Top Mecenas
+              </h5>
+              <ul
+                id="kpi-top-mecenas"
+                class="list-unstyled text-light small m-0 px-2"
+              >
+                <li class="text-center text-muted">Cargando...</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <hr />
       <div
         id="admin-content"
-        class="border border-secondary p-4 rounded mb-4"
+        class="border border-secondary p-4 rounded"
         style="background: var(--dark-gray)"
       >
         <h3 class="text-gold h5 mb-3">Obras Pendientes de Revisión</h3>
         <div id="admin-pending-table"></div>
       </div>
+      <hr />
       <div
         id="admin-users-panel"
         class="border border-secondary p-4 rounded"
