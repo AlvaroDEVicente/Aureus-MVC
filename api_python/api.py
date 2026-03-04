@@ -32,8 +32,3 @@ def get_dashboard_data(db: Session = Depends(get_db)):
             "usuarios": AnalyticsLogic.obtener_metricas_usuarios(db)
         }
     }
-
-@app.get("/api/analytics/volumen")
-def get_volumen(db: Session = Depends(get_db)):
-    """ Endpoint individual para el volumen de negocio """
-    return {"volumen_negocio_eur": AnalyticsLogic.calcular_volumen_negocio(db)}

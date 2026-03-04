@@ -1,3 +1,4 @@
+# core.py
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -5,25 +6,26 @@ from datetime import datetime, timedelta
 class AnalyticsLogic:
 
     # ==========================================
-    # 💰 MÉTRICAS ECONÓMICAS
+    # MÉTRICAS ECONÓMICAS
     # ==========================================
     @staticmethod
     def obtener_metricas_economicas(db: Session) -> dict:
-        # 1. Volumen y Precio Medio
+        # 1. Volumen (Comisiones del 20%) y Precio Medio de obras ENTREGADAS
+        # Solo consideramos ventas completadas (ENTREGADA) para el beneficio real
         q_ventas = text("""
             SELECT 
-                SUM(precio_actual * 0.05) as volumen,
+                SUM(precio_actual * 0.20) as volumen,
                 AVG(precio_actual) as precio_medio
             FROM obra
-            WHERE estado = 'FINALIZADA'
+            WHERE estado = 'ENTREGADA'
         """)
         ventas = db.execute(q_ventas).fetchone()
         
-        # 2. Estado del mercado (Activas vs Finalizadas)
+        # 2. Estado del mercado (Activas vs Finalizadas/Pendientes de entrega)
         q_mercado = text("""
             SELECT 
                 SUM(CASE WHEN estado = 'ACTIVA' THEN 1 ELSE 0 END) as activas,
-                SUM(CASE WHEN estado = 'FINALIZADA' THEN 1 ELSE 0 END) as finalizadas
+                SUM(CASE WHEN estado IN ('FINALIZADA', 'ENTREGADA') THEN 1 ELSE 0 END) as finalizadas
             FROM obra
         """)
         mercado = db.execute(q_mercado).fetchone()
@@ -41,7 +43,7 @@ class AnalyticsLogic:
         }
 
     # ==========================================
-    # 👥 MÉTRICAS DE USUARIOS Y COMUNIDAD
+    # MÉTRICAS DE USUARIOS Y COMUNIDAD
     # ==========================================
     @staticmethod
     def obtener_metricas_usuarios(db: Session) -> dict:
@@ -58,12 +60,13 @@ class AnalyticsLogic:
         """)
         stats = db.execute(q_stats, {"fecha_limite": fecha_limite}).fetchone()
 
-        # 2. Top Mecenas (Compradores de obras finalizadas)
+        # 2. Top Mecenas (Compradores de obras ENTREGADAS)
+        # Cambiamos FINALIZADA a ENTREGADA para reflejar el gasto real completado
         q_top = text("""
-            SELECT u.nombre, SUM(o.precio_actual) as total_invertido
+            SELECT u.nombre, SUM(o.precio_actual * 1.12) as total_invertido
             FROM usuario u
             JOIN obra o ON u.id_usuario = o.id_comprador
-            WHERE o.estado = 'FINALIZADA'
+            WHERE o.estado = 'ENTREGADA'
             GROUP BY u.id_usuario, u.nombre
             ORDER BY total_invertido DESC
             LIMIT 5
