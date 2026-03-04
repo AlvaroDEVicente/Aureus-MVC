@@ -67,8 +67,8 @@ class ControladorSubasta
 
             $archivo_tmp = $_FILES["imagen"]["tmp_name"];
 
-            // 2. Límite de peso: 5MB (5 * 1024 * 1024 bytes)
-            $peso_maximo = 5242880; 
+            // 2. Límite de peso: 20MB
+            $peso_maximo = 20971520;
             if ($_FILES["imagen"]["size"] > $peso_maximo) {
                 throw new Exception("La obra es demasiado pesada. El límite de la bóveda es de 5MB.");
             }
@@ -309,6 +309,18 @@ echo json_encode([
         // Aquí llamamos al método unificado del modelo
         $exito = $this->modeloObra->cambiarEstadoObra($id_obra, 'ACTIVA');
         
+        echo json_encode(["success" => $exito]);
+        exit();
+    }
+
+    public function rechazarObra() {
+        session_start();
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_rol']) || $_SESSION['user_rol'] !== 'admin') { 
+            echo json_encode(["success" => false]); exit(); 
+        }
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $exito = $this->modeloObra->cambiarEstadoObra((int)$datos['id_obra'], 'RECHAZADA');
         echo json_encode(["success" => $exito]);
         exit();
     }

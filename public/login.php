@@ -33,12 +33,6 @@ if(isset($_SESSION['user_id'])) {
         <a class="navbar-brand" href="index.html" style="cursor: pointer;">
         <img src="./img/Aureus_logo.png" alt="Logo AUREUS" style="height: 100px; width: auto; object-fit: contain" />
         </a>
-          <img
-            src="./img/Aureus_logo.png"
-            alt="Logo AUREUS"
-            style="height: 100px; width: auto; object-fit: contain"
-          />
-        </a>
         </div>
     </nav>
     

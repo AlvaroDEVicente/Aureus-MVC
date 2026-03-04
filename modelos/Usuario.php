@@ -114,9 +114,6 @@ class Usuario {
 /**
      * PANEL ADMIN: Obtiene la lista completa de usuarios.
      */
-/**
-     * PANEL ADMIN: Obtiene la lista completa de usuarios.
-     */
     public function obtenerTodos() {
         // AÑADIDA LA COLUMNA 'activo' A LA CONSULTA SQL
         $sql = "SELECT id_usuario, nombre, email, rol, saldo_disponible, activo, fecha_registro FROM usuario ORDER BY fecha_registro DESC";
@@ -146,9 +143,6 @@ class Usuario {
         return $stmt->execute();
     }
 
- /**
-     * Cobra la licencia, cambia el rol y registra el movimiento.
-     */
 /**
      * Cobra la licencia, cambia el rol y registra el movimiento.
      * (Versión MySQLi)
@@ -210,6 +204,31 @@ class Usuario {
         $sql = "UPDATE usuario SET activo = 1 WHERE id_usuario = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id_usuario);
+        return $stmt->execute();
+    }
+
+    // ==========================================================
+    // MÉTODOS DEL PERFIL DEL CIUDADANO
+    // ==========================================================
+
+    /**
+     * Obtiene todos los datos relevantes para el perfil de usuario.
+     */
+    public function obtenerPerfil($id_usuario) {
+        $sql = "SELECT nombre, email, dni, rol, avatar_url, biografia FROM usuario WHERE id_usuario = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $id_usuario);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc();
+    }
+
+    /**
+     * Guarda el texto de la biografía en la base de datos.
+     */
+    public function actualizarBiografiaBD($id_usuario, $biografia) {
+        $sql = "UPDATE usuario SET biografia = ? WHERE id_usuario = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("si", $biografia, $id_usuario);
         return $stmt->execute();
     }
 }

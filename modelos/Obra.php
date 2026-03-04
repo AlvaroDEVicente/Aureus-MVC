@@ -12,11 +12,12 @@ class Obra {
     }
 
 public function obtenerCatalogoActivo() {
-        // AÑADIDO: id_categoria
-        $sql = "SELECT id_obra, titulo, imagen_url, precio_actual, fecha_fin, id_categoria 
+        // Traemos las obras activas, finalizadas, entregadas y las desiertas
+        // AÑADIDO: precio_inicial
+        $sql = "SELECT id_obra, titulo, imagen_url, precio_inicial, precio_actual, fecha_fin, id_categoria, estado 
                 FROM obra 
-                WHERE estado = 'ACTIVA' 
-                ORDER BY id_obra DESC";
+                WHERE estado IN ('ACTIVA', 'FINALIZADA', 'ENTREGADA', 'DESIERTA') 
+                ORDER BY estado = 'ACTIVA' DESC, fecha_fin DESC";
         $resultado = $this->db->query($sql);
         return $resultado->fetch_all(MYSQLI_ASSOC);
     }

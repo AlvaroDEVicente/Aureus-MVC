@@ -28,9 +28,9 @@ if(isset($_SESSION['user_id'])) {
 <body>
     <nav class="navbar navbar-dark bg-dark mb-4" style="border-bottom: 1px solid #333;">
         <div class="container">
-            <<a class="navbar-brand" href="index.html" style="cursor: pointer;">
-  <img src="./img/Aureus_logo.png" alt="Logo AUREUS" style="height: 100px; width: auto; object-fit: contain" />
-</a>
+        <a class="navbar-brand" href="index.html" style="cursor: pointer;">
+        <img src="./img/Aureus_logo.png" alt="Logo AUREUS" style="height: 100px; width: auto; object-fit: contain" />
+        </a>
         </div>
     </nav>
 

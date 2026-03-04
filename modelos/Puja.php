@@ -4,7 +4,7 @@
  * Capa: MODELO (Lógica de Datos y Transacciones)
  * Archivo: modelos/Puja.php
  * Descripción: Gestiona el historial de pujas y la transacción financiera crítica (ACID)
- * asegurando la consistencia del libro mayor y evitando Race Conditions.
+ * asegurando la consistencia del libro mayor y la correcta aplicación de comisiones.
  */
 
 class Puja
@@ -19,28 +19,29 @@ class Puja
 
     /**
      * MOTOR TRANSACCIONAL ACID: Procesa una puja de forma segura.
-     * Sustituye a vuestro antiguo 'api/place_bid.php'
+     * Aplica el 12% de Prima del Comprador a los fondos bloqueados.
      */
     public function realizarPuja($id_obra, $id_usuario, $monto_puja, $ip_usuario)
     {
-
-        // INICIO TRANSACCIÓN ACID
-        // Apagamos el auto-guardado. A partir de aquí, si algo falla, nada se guarda.
         $this->db->begin_transaction();
 
         try {
-            // PASO 1: Bloqueo Pesimista de Cartera (Evita que el usuario gaste el dinero dos veces)
+            // 💰 CÁLCULO DE LA PRIMA: Lo que realmente sale de la cartera (Puja + 12%)
+            $total_a_bloquear = $monto_puja * 1.12;
+
+            // PASO 1: Bloqueo Pesimista de Cartera
             $sql_saldo = "SELECT saldo_disponible, saldo_bloqueado FROM usuario WHERE id_usuario = ? FOR UPDATE";
             $stmt_saldo = $this->db->prepare($sql_saldo);
             $stmt_saldo->bind_param("i", $id_usuario);
             $stmt_saldo->execute();
             $user_bd = $stmt_saldo->get_result()->fetch_assoc();
 
-            if ($monto_puja > $user_bd['saldo_disponible']) {
-                throw new Exception("Saldo Insuficiente en la bóveda. Recargue su cartera.");
+            // Verificamos si tiene saldo para la puja + el 12% de comisión
+            if ($total_a_bloquear > $user_bd['saldo_disponible']) {
+                throw new Exception("Saldo Insuficiente. Necesita " . number_format($total_a_bloquear, 2) . " € (incluye 12% de prima) en la bóveda.");
             }
 
-            // PASO 2: Bloqueo Pesimista de la Obra (Nadie más puede pujar por ella en este milisegundo)
+            // PASO 2: Bloqueo Pesimista de la Obra
             $sql_obra = "SELECT precio_actual, estado FROM obra WHERE id_obra = ? FOR UPDATE";
             $stmt_obra = $this->db->prepare($sql_obra);
             $stmt_obra->bind_param("i", $id_obra);
@@ -51,64 +52,68 @@ class Puja
                 throw new Exception("La obra de arte no está disponible para licitación.");
             }
 
-            // PASO 3: Validación del salto mínimo exigido (+50€)
-            $precio_a_batir = $obra_bd['precio_actual'];
-            if ($monto_puja < ($precio_a_batir + 50)) {
-                throw new Exception("La oferta debe superar los {$precio_a_batir}€ en al menos +50€.");
-            }
-
-            // PASO 4: Búsqueda del mecenas destronado y devolución de sus fondos bloqueados
+            // PASO 3: Averiguar si hay pujas previas
             $sql_max = "SELECT id_usuario, monto FROM puja WHERE id_obra = ? ORDER BY monto DESC LIMIT 1 FOR UPDATE";
             $stmt_max = $this->db->prepare($sql_max);
             $stmt_max->bind_param("i", $id_obra);
             $stmt_max->execute();
             $puja_maxima = $stmt_max->get_result()->fetch_assoc();
 
-            if ($puja_maxima && $puja_maxima['id_usuario'] != $id_usuario) {
-                $sql_dev = "UPDATE usuario SET saldo_bloqueado = saldo_bloqueado - ?, saldo_disponible = saldo_disponible + ? WHERE id_usuario = ?";
-                $stmt_dev = $this->db->prepare($sql_dev);
-                $stmt_dev->bind_param("ddi", $puja_maxima['monto'], $puja_maxima['monto'], $puja_maxima['id_usuario']);
-                $stmt_dev->execute();
+            $precio_a_batir = $obra_bd['precio_actual'];
+
+            // PASO 4: Validación dinámica del mínimo exigido
+            if (!$puja_maxima) {
+                if ($monto_puja < $precio_a_batir) {
+                    throw new Exception("La primera oferta debe ser al menos el precio de salida ({$precio_a_batir}€).");
+                }
+            } else {
+                if ($monto_puja < ($precio_a_batir + 50)) {
+                    throw new Exception("La oferta debe superar los {$precio_a_batir}€ en al menos +50€.");
+                }
+                
+                // Si llegamos aquí, devolvemos los fondos al usuario destronado (Devolvemos su puja + su 12%)
+                if ($puja_maxima['id_usuario'] != $id_usuario) {
+                    $monto_a_devolver = $puja_maxima['monto'] * 1.12;
+                    $sql_dev = "UPDATE usuario SET saldo_bloqueado = saldo_bloqueado - ?, saldo_disponible = saldo_disponible + ? WHERE id_usuario = ?";
+                    $stmt_dev = $this->db->prepare($sql_dev);
+                    $stmt_dev->bind_param("ddi", $monto_a_devolver, $monto_a_devolver, $puja_maxima['id_usuario']);
+                    $stmt_dev->execute();
+                }
             }
 
-            // PASO 5: Congelación de fondos del nuevo pujador ganador
-            $nuevo_disponible = $user_bd['saldo_disponible'] - $monto_puja;
-            $nuevo_bloqueado = $user_bd['saldo_bloqueado'] + $monto_puja;
+            // PASO 5: Congelación de fondos del nuevo pujador ganador (Puja + 12%)
+            $nuevo_disponible = $user_bd['saldo_disponible'] - $total_a_bloquear;
+            $nuevo_bloqueado = $user_bd['saldo_bloqueado'] + $total_a_bloquear;
 
             $sql_cobro = "UPDATE usuario SET saldo_disponible = ?, saldo_bloqueado = ? WHERE id_usuario = ?";
             $stmt_cobro = $this->db->prepare($sql_cobro);
             $stmt_cobro->bind_param("ddi", $nuevo_disponible, $nuevo_bloqueado, $id_usuario);
             $stmt_cobro->execute();
 
-            // PASO 6: Actualización de la cotización y SISTEMA ANTI-SNIPING (Vía SQL)
-            // Actualizamos el precio. Además, si a la fecha_fin le quedan menos de 5 minutos,
-            // MySQL automáticamente le suma 5 minutos desde este momento exacto.
+            // PASO 6: Actualización de la cotización y SISTEMA ANTI-SNIPING
             $sql_update_obra = "UPDATE obra 
                                 SET precio_actual = ?, 
                                     fecha_fin = IF(fecha_fin < DATE_ADD(NOW(), INTERVAL 5 MINUTE), DATE_ADD(NOW(), INTERVAL 5 MINUTE), fecha_fin) 
                                 WHERE id_obra = ?";
-
             $stmt_update_obra = $this->db->prepare($sql_update_obra);
             $stmt_update_obra->bind_param("di", $monto_puja, $id_obra);
             $stmt_update_obra->execute();
 
-            // PASO 7: Registro histórico en el libro de Pujas
+            // PASO 7: Registro histórico en el libro de Pujas (Se registra el valor puro, sin prima)
             $sql_insert = "INSERT INTO puja (id_obra, id_usuario, monto, fecha) VALUES (?, ?, ?, NOW())";
             $stmt_insert = $this->db->prepare($sql_insert);
             $stmt_insert->bind_param("iid", $id_obra, $id_usuario, $monto_puja);
             $stmt_insert->execute();
 
-            // PASO 8: Auditoría de Seguridad (Log del sistema)
-            $detalle_log = "Licitación de $monto_puja € por la obra ID: $id_obra";
+            // PASO 8: Auditoría de Seguridad
+            $detalle_log = "Licitación de $monto_puja € (Bloqueados: $total_a_bloquear €) por la obra ID: $id_obra";
             $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, ip, fecha) VALUES (?, 'PUJA', ?, ?, NOW())";
             $stmt_log = $this->db->prepare($sql_log);
             $stmt_log->bind_param("iss", $id_usuario, $detalle_log, $ip_usuario);
             $stmt_log->execute();
 
-            // COMMIT: Si hemos llegado hasta aquí sin errores, guardamos todo definitivamente.
             $this->db->commit();
 
-            // Devolvemos el éxito y los nuevos saldos para actualizar la UI del usuario
             return [
                 "success" => true,
                 "nuevo_saldo_disponible" => $nuevo_disponible,
@@ -116,19 +121,11 @@ class Puja
             ];
 
         } catch (Exception $e) {
-            // ROLLBACK: Hubo un error (ej. saldo insuficiente o colisión). Deshacemos todo.
             $this->db->rollback();
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return ["success" => false, "message" => $e->getMessage()];
         }
     }
 
-    /**
-     * Ticker Global: Devuelve las últimas 10 pujas de toda la plataforma.
-     * Sustituye a 'api/get_global_bids.php'
-     */
     public function obtenerTickerGlobal()
     {
         $sql = "SELECT o.titulo AS titulo_obra, u.nombre AS nombre_usuario, p.monto, p.fecha
@@ -141,10 +138,6 @@ class Puja
         return $resultado->fetch_all(MYSQLI_ASSOC);
     }
 
-    /**
-     * Historial de una obra: Devuelve todas las pujas de una obra concreta.
-     * Es la segunda parte de vuestro antiguo 'api/get_artwork.php'
-     */
     public function obtenerHistorialPorObra($id_obra)
     {
         $sql = "SELECT u.nombre AS nombre_usuario, p.monto, p.fecha 
@@ -159,13 +152,9 @@ class Puja
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
-/**
-     * Obtiene las pujas de un usuario para su Bóveda Personal (Mejorado para Escrow).
-     */
+
     public function obtenerPujasMecenas($id_usuario)
     {
-        // Añadimos o.id_obra, o.estado y o.id_comprador al SELECT
-        // Usamos un CASE para manejar los distintos estados de la obra en lugar de un simple IF
         $sql = "SELECT o.id_obra, o.titulo, o.precio_actual, o.fecha_fin, o.estado, o.id_comprador,
                        MAX(p.monto) as mi_monto,
                        CASE
@@ -182,36 +171,29 @@ class Puja
                 ORDER BY o.fecha_fin DESC";
 
         $stmt = $this->db->prepare($sql);
-        // Pasamos el id_usuario 3 veces porque ahora el SQL tiene tres interrogaciones (?)
         $stmt->bind_param("iii", $id_usuario, $id_usuario, $id_usuario);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
+
     /*
-    * MOTOR TRANSACCIONAL PARA ESCROW (Liberación de fondos)
-    */
+     * MOTOR TRANSACCIONAL PARA ESCROW (Liberación de fondos)
+     * Aplica el split: 12% prima pagada, 8% comisión descontada, 20% total para AUREUS.
+     */
     public function confirmarRecepcion($id_obra, $id_comprador) {
-        
-        // INICIO DE TRANSACCIÓN ACID
-        // A partir de esta línea, MySQL no guardará los cambios permanentemente hasta que hagamos 'commit()'.
         $this->db->begin_transaction();
 
         try {
-            // 1. BLOQUEO PESIMISTA Y VALIDACIÓN DE SEGURIDAD
-            // Usamos 'FOR UPDATE' al final del SELECT. Esto bloquea esta fila de la obra en MySQL.
-            // Evita que el usuario, haciendo doble clic rápido o trampas, ejecute esta función 2 veces a la vez.
             $sql_obra = "SELECT precio_actual, id_vendedor, estado, id_comprador FROM obra WHERE id_obra = ? FOR UPDATE";
             $stmt_obra = $this->db->prepare($sql_obra);
             $stmt_obra->bind_param("i", $id_obra);
             $stmt_obra->execute();
             $obra_bd = $stmt_obra->get_result()->fetch_assoc();
 
-            // Blindaje 1: Comprobar que la obra existe y está esperando ser entregada ('FINALIZADA')
             if (!$obra_bd || $obra_bd['estado'] !== 'FINALIZADA') {
                 throw new Exception("Operación rechazada. La obra no existe o ya fue liquidada.");
             }
-            // Blindaje 2: Evitar que un usuario libere los fondos de una obra que no ha comprado él.
             if ($obra_bd['id_comprador'] != $id_comprador) {
                 throw new Exception("Seguridad: Autorización denegada. No eres el adjudicatario de esta obra.");
             }
@@ -219,46 +201,52 @@ class Puja
             $precio_final = $obra_bd['precio_actual'];
             $id_vendedor = $obra_bd['id_vendedor'];
 
-            // 2. COBRO AL COMPRADOR
-            // Le restamos el precio final de su 'saldo_bloqueado'. El dinero sale de su cuenta definitivamente.
+            // 🧮 MATEMÁTICAS DE COMISIONES (Ej: 100€)
+            // Comprador tenía bloqueado el precio + 12% (112€)
+            $total_bloqueado = $precio_final * 1.12; 
+            
+            // Vendedor recibe el precio - 8% de comisión (92€)
+            $pago_vendedor = $precio_final * 0.92;
+            
+            // AUREUS recibe la suma de las dos partes (12% + 8% = 20%)
+            $comision_aureus = $precio_final * 0.20;
+
+            // 1. COBRO AL COMPRADOR (Destruimos el saldo bloqueado)
             $sql_comprador = "UPDATE usuario SET saldo_bloqueado = saldo_bloqueado - ? WHERE id_usuario = ?";
             $stmt_comprador = $this->db->prepare($sql_comprador);
-            $stmt_comprador->bind_param("di", $precio_final, $id_comprador);
+            $stmt_comprador->bind_param("di", $total_bloqueado, $id_comprador);
             $stmt_comprador->execute();
 
-            // AUREUS se queda un 5% de comisión por el servicio. El artista se lleva el 95% restante.
-            $comision = $precio_final * 0.05;
-            $pago_vendedor = $precio_final * 0.95;
-
-            // 4. PAGO AL VENDEDOR (ARTISTA)
-            // Se lo sumamos a su 'saldo_disponible' para que pueda retirarlo a su banco o usarlo para pujar.
+            // 2. PAGO AL VENDEDOR (Se le inyecta el 92% a su saldo disponible)
             $sql_vendedor = "UPDATE usuario SET saldo_disponible = saldo_disponible + ? WHERE id_usuario = ?";
             $stmt_vendedor = $this->db->prepare($sql_vendedor);
             $stmt_vendedor->bind_param("di", $pago_vendedor, $id_vendedor);
             $stmt_vendedor->execute();
 
-            // 5. MARCAR COMO FINALIZADA DEFINITIVAMENTE
-            // Cambiamos a 'ENTREGADA'. Así evitamos que este script se pueda volver a ejecutar para esta obra.
+            // 3. PAGO A AUREUS (El 20% va a la cuenta del Admin)
+            $sql_aureus = "UPDATE usuario SET saldo_disponible = saldo_disponible + ? WHERE rol = 'admin' LIMIT 1";
+            $stmt_aureus = $this->db->prepare($sql_aureus);
+            $stmt_aureus->bind_param("d", $comision_aureus);
+            $stmt_aureus->execute();
+
+            // 4. MARCAR COMO ENTREGADA
             $sql_estado = "UPDATE obra SET estado = 'ENTREGADA' WHERE id_obra = ?";
             $stmt_estado = $this->db->prepare($sql_estado);
             $stmt_estado->bind_param("i", $id_obra);
             $stmt_estado->execute();
 
-            // Guardamos el recibo de la transacción para el administrador en el log.
-            $detalle_log = "Fondos liberados (Escrow): Obra #{$id_obra}. Vendedor #{$id_vendedor} recibe {$pago_vendedor}€. Comisión AUREUS: {$comision}€.";
+            // 5. REGISTRO EN LOG
+            $detalle_log = "Fondos liberados: Obra #{$id_obra}. Vendedor #{$id_vendedor} recibe {$pago_vendedor}€. Comisión AUREUS: {$comision_aureus}€.";
             $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, fecha) VALUES (?, 'LIBERACION_FONDOS', ?, NOW())";
             $stmt_log = $this->db->prepare($sql_log);
             $stmt_log->bind_param("is", $id_comprador, $detalle_log);
             $stmt_log->execute();
 
-            // Si todo ha ido bien, guardamos todos los cambios (updates de saldos, estados y logs) de golpe en la BD.
             $this->db->commit();
             
             return ["success" => true, "message" => "Fondos liberados y transferidos al artista. ¡Disfruta de tu nueva obra!"];
 
         } catch (Exception $e) {
-            // Si ha fallado algo deshacemos CUALQUIER cambio que se haya intentado hacer en este bloque.
-            // Nadie pierde dinero por errores del servidor.
             $this->db->rollback();
             return ["success" => false, "message" => $e->getMessage()];
         }
