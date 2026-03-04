@@ -23,10 +23,12 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
+
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css"
       rel="stylesheet"
     />
+
     <link
       href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css"
       rel="stylesheet"
@@ -226,9 +228,8 @@
                     class="form-check-label text-light small"
                     for="sort-time"
                     style="cursor: pointer"
+                    >Próximas a cerrar</label
                   >
-                    Próximas a cerrar
-                  </label>
                 </div>
 
                 <div class="form-check mb-2">
@@ -243,9 +244,8 @@
                     class="form-check-label text-light small"
                     for="sort-price-asc"
                     style="cursor: pointer"
+                    >Precio: Menor a Mayor</label
                   >
-                    Precio: Menor a Mayor
-                  </label>
                 </div>
 
                 <div class="form-check">
@@ -260,9 +260,8 @@
                     class="form-check-label text-light small"
                     for="sort-price-desc"
                     style="cursor: pointer"
+                    >Precio: Mayor a Menor</label
                   >
-                    Precio: Mayor a Menor
-                  </label>
                 </div>
               </div>
             </div>
@@ -293,6 +292,7 @@
               >Colección de Primavera</span
             >
           </div>
+
           <div
             id="catalog-container"
             class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"
@@ -344,6 +344,7 @@
       >
         ← Retornar al Catálogo
       </button>
+
       <div class="row">
         <div class="col-lg-8 mb-4 detail-info">
           <h2 id="detail-title" class="text-gold">Cargando...</h2>
@@ -353,6 +354,7 @@
             src=""
             alt="Obra en detalle"
           />
+
           <div
             class="info-box mt-3 p-4 border border-secondary rounded"
             style="background: var(--dark-gray)"
@@ -382,18 +384,30 @@
               Valor a Batir:
               <strong id="current-precio-actual" class="text-gold">0</strong> €
             </p>
+
             <form id="bid-form">
               <input type="hidden" id="input-id-obra" value="" />
               <label for="input-monto" class="text-muted mb-1"
                 >Oferta en firme (€):</label
               >
+
               <input
                 type="number"
                 id="input-monto"
                 required
                 step="0.01"
-                class="form-control mb-3"
+                class="form-control mb-1"
               />
+
+              <small
+                id="fee-calculator"
+                class="text-muted d-block mb-3"
+                style="font-size: 0.8rem"
+              >
+                Total a bloquear (incl. 12% Prima):
+                <strong class="text-gold">0.00 €</strong>
+              </small>
+
               <button type="submit" id="btn-submit-bid" class="btn-gold w-100">
                 Sellar Transacción
               </button>
@@ -421,6 +435,57 @@
 
     <section id="view-profile" class="container mt-4" style="display: none">
       <h2 class="section-title">Perfil del Ciudadano</h2>
+
+      <div class="row justify-content-center align-items-center mt-4 mb-4">
+        <div class="col-12 col-md-4 text-center mb-4">
+          <div class="avatar-wrapper mx-auto" style="cursor: default">
+            <img
+              src="https://static.vecteezy.com/system/resources/thumbnails/057/883/614/small/elegant-artistic-ancient-roman-bust-element-png.png"
+              id="perfil-avatar"
+              class="avatar-circle border-black shadow-lg"
+              alt="Avatar de usuario"
+              style="background-color: #0a0a0a; padding: 10px"
+            />
+          </div>
+          <h3 class="mt-3 text-gold" id="perfil-nombre">Cargando...</h3>
+          <span class="badge bg-secondary" id="perfil-rol">Ciudadano</span>
+        </div>
+
+        <div class="col-12 col-md-8">
+          <div
+            class="card-auction p-4 h-100 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h5 class="text-gold border-bottom border-secondary pb-2 mb-3">
+              Expediente Imperial
+            </h5>
+            <div class="mb-3">
+              <label class="text-muted small">Correo Electrónico</label>
+              <p id="perfil-email" class="text-white mb-0">-</p>
+            </div>
+            <div class="mb-3">
+              <label class="text-muted small">Identificación (DNI/NIE)</label>
+              <p id="perfil-dni" class="text-white mb-0">-</p>
+            </div>
+            <div class="mb-3">
+              <label class="text-muted small">Biografía</label>
+              <textarea
+                id="perfil-biografia"
+                class="form-control bg-dark text-white border-secondary mt-1"
+                rows="3"
+                placeholder="Escribe tu historia..."
+              ></textarea>
+            </div>
+            <button
+              class="btn btn-outline-warning btn-sm mt-2"
+              onclick="guardarBiografia()"
+            >
+              Guardar Biografía
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="row g-4 mt-2">
         <div class="col-lg-4">
           <div
@@ -431,19 +496,15 @@
             <canvas id="profile-chart"></canvas>
           </div>
         </div>
+
         <div class="col-lg-8">
           <div
             class="card-auction p-4 h-100 border border-secondary rounded"
             style="background: var(--dark-gray)"
           >
-            <h3 class="text-gold h5 mb-4">Credenciales y KPIs</h3>
+            <h3 class="text-gold h5 mb-4">Credenciales</h3>
+
             <ul class="list-unstyled" style="font-size: 1.1rem; line-height: 2">
-              <li>
-                <strong class="text-muted">Rango Oficial:</strong>
-                <span id="profile-rol" class="text-gold fw-bold text-uppercase"
-                  >...</span
-                >
-              </li>
               <li>
                 <strong class="text-muted">Estado de la cuenta:</strong>
                 <span class="badge bg-success">Activo / Verificado</span>
@@ -492,6 +553,7 @@
       <p class="text-muted mb-4">
         Gestión de inventario, forja de nuevas obras y análisis de mercado.
       </p>
+
       <div
         id="workshop-content"
         class="border border-secondary p-4 rounded"
@@ -501,6 +563,7 @@
       <template id="form-subir-obra-template">
         <div class="form-container-fade-in">
           <h3 class="text-gold mb-4">Aportar Nuevo Lote a la Bóveda</h3>
+
           <form id="form-nueva-obra" enctype="multipart/form-data">
             <div class="mb-3">
               <label class="text-muted small">Título de la Obra</label>
@@ -512,6 +575,7 @@
                 placeholder="Ej. El Ocaso de Adriano"
               />
             </div>
+
             <div class="mb-3">
               <label class="text-muted small"
                 >Descripción y Certificaciones</label
@@ -523,6 +587,7 @@
                 required
               ></textarea>
             </div>
+
             <div class="row g-3 mb-3">
               <div class="col-md-6">
                 <label class="text-muted small">Precio Salida (€)</label>
@@ -545,6 +610,7 @@
                 />
               </div>
             </div>
+
             <div class="mb-4">
               <label class="text-muted small"
                 >Imagen de la Obra (JPG/PNG/WEBP)</label
@@ -557,6 +623,7 @@
                 required
               />
             </div>
+
             <div class="d-flex gap-2">
               <button type="submit" class="btn-gold w-100">
                 Publicar en Bóveda
@@ -598,19 +665,22 @@
           >
             <h3 class="text-gold h5">Estado de Cuenta</h3>
             <hr class="border-secondary" />
+
             <div class="d-flex justify-content-between mb-2">
               <span>Saldo Total:</span
               ><span id="vault-total" class="fw-bold">0.00 €</span>
             </div>
+
             <div class="d-flex justify-content-between mb-2">
               <span>En Pujas (Bloqueado):</span
               ><span id="vault-blocked" class="text-muted">0.00 €</span>
             </div>
+
             <div
               class="d-flex justify-content-between mt-3 pt-3 border-top border-secondary"
             >
-              <span>Disponible:</span
-              ><span
+              <span>Disponible:</span>
+              <span
                 id="vault-available"
                 class="text-gold fw-bold"
                 style="font-size: 1.2rem"
@@ -619,6 +689,7 @@
             </div>
           </div>
         </div>
+
         <div class="col-lg-8">
           <div
             class="card-auction p-4 h-100 border border-secondary rounded"
@@ -761,7 +832,9 @@
           </div>
         </div>
       </div>
+
       <hr />
+
       <div
         id="admin-content"
         class="border border-secondary p-4 rounded"
@@ -770,7 +843,9 @@
         <h3 class="text-gold h5 mb-3">Obras Pendientes de Revisión</h3>
         <div id="admin-pending-table"></div>
       </div>
+
       <hr />
+
       <div
         id="admin-users-panel"
         class="border border-secondary p-4 rounded"
@@ -871,6 +946,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
     <script type="module" src="js/main.js"></script>
 
     <script src="https://www.paypal.com/sdk/js?client-id=AV6U32dmQP_D374qGRyhD3_THQPhwQ_HOOSdoVDljYflDlc4UqniKdwYWV9tCjANmc_niIpZHUfgoW_Q&currency=EUR"></script>

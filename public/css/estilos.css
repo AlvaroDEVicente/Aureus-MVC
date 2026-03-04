@@ -162,6 +162,69 @@ span.text-muted {
   padding: 1.5rem;
 }
 
+/* ==========================================================================
+   ESTADOS DE TARJETAS (Obras Finalizadas)
+   ========================================================================== */
+.card-auction.terminado {
+  opacity: 0.4; /* Lo hacemos semi-transparente */
+  filter: grayscale(80%); /* Apagamos los colores */
+  border-color: #333 !important;
+  transition: all 0.3s ease;
+}
+
+/* Un pequeño detalle UX: si pasan el ratón, recobra un poco de vida */
+.card-auction.terminado:hover {
+  opacity: 0.8;
+  filter: grayscale(20%);
+}
+
+/* ==========================================
+   PERFIL Y COMPONENTES DE USUARIO
+   ========================================== */
+.avatar-wrapper {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background-color: var(
+    --dark-gray
+  ); /* Color de fondo por si tarda en cargar */
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Esto es clave para que imágenes rectangulares no se deformen */
+  transition: filter 0.3s ease;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: var(--gold); /* Dorado Aureus */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Al pasar el ratón, mostramos el texto de "Cambiar Retrato" */
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-wrapper:hover .avatar-circle {
+  filter: blur(2px); /* Desenfoca un poquito la imagen de fondo */
+}
+
 /* ==========================================
    INTEGRACIÓN DE BIBLIOTECAS (OVERRIDES)
    ========================================== */
@@ -221,20 +284,4 @@ span.text-muted {
 }
 .tabulator-row .tabulator-cell {
   border-right: 1px solid var(--border);
-}
-
-/* ==========================================================================
-   ESTADOS DE TARJETAS (Obras Finalizadas)
-   ========================================================================== */
-.card-auction.terminado {
-  opacity: 0.4; /* Lo hacemos semi-transparente */
-  filter: grayscale(80%); /* Apagamos los colores */
-  border-color: #333 !important;
-  transition: all 0.3s ease;
-}
-
-/* Un pequeño detalle UX: si pasan el ratón, recobra un poco de vida */
-.card-auction.terminado:hover {
-  opacity: 0.8;
-  filter: grayscale(20%);
 }

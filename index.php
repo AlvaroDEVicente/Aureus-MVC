@@ -2,6 +2,8 @@
 ob_start(); // Inicia el búfer de salida
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // No mostrar errores en el flujo JSON
+date_default_timezone_set('Europe/Madrid');
+
 /**
  * AUREUS - Proyecto Intermodular
  * Capa: FRONT CONTROLLER (Enrutador Principal)
@@ -101,6 +103,11 @@ switch ($accion) {
         $controlador->aprobarObra();
         break;
 
+    case 'rechazar_obra':
+        $controlador = new ControladorSubasta();
+        $controlador->rechazarObra();
+        break;
+
     case 'obtener_taller':
         $controlador = new ControladorSubasta();
         $controlador->obtenerTaller();
@@ -153,6 +160,19 @@ switch ($accion) {
         // los redirigimos directamente a la interfaz visual (SPA).
         header("Location: public/index.html");
         exit();
+        break;
+
+        // --- RUTAS DEL PERFIL DEL CIUDADANO ---
+    case 'obtener_mi_perfil':
+        require_once 'controladores/ControladorAcceso.php'; // Por si acaso no está cargado arriba
+        $controlador = new ControladorAcceso();
+        $controlador->obtenerMiPerfil();
+        break;
+        
+    case 'guardar_biografia':
+        require_once 'controladores/ControladorAcceso.php';
+        $controlador = new ControladorAcceso();
+        $controlador->guardarBiografia();
         break;
 }
 ?>
