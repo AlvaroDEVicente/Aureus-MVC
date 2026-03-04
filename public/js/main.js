@@ -181,6 +181,13 @@ let currentMaxPrice = Infinity;
 let currentSort = "time-asc"; // Por defecto, ordenamos por urgencia
 
 async function loadCatalog() {
+  // 1. Intentamos limpiar las subastas, pero si falla, ignoramos el error y seguimos
+  try {
+    await api.get("liquidar_vencidas");
+  } catch (error) {
+    console.warn("Aviso: El motor de liquidación no respondió correctamente.", error);
+  }
+
   allArtworks = await api.get("obtener_catalogo");
   const sortRadios = document.querySelectorAll('input[name="sort-catalog"]');
 
@@ -654,7 +661,8 @@ async function loadVaultData() {
   document.getElementById("vault-total").innerText = formatearDinero(total);
 
   const bids = await api.get("obtener_mis_pujas");
-  tablas.crearBoveda("#vault-bids-table", bids || []);
+  // Pasamos la función confirmarRecepcionObra como callback
+  tablas.crearBoveda("#vault-bids-table", bids || [], confirmarRecepcionObra);
 }
 
 function setupDepositForm() {
@@ -726,4 +734,34 @@ function setupDepositForm() {
       },
     })
     .render("#paypal-button-container");
+}
+
+// 
+// SISTEMA DE CUSTODIA (ESCROW) 🟢
+// 
+async function confirmarRecepcionObra(id_obra) {
+  Swal.fire({
+    title: "¿Confirmar Recepción?",
+    text: "Al aceptar, certifícas que tienes la obra y los fondos bloqueados serán transferidos irrevocablemente al artista.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d4af37",
+    cancelButtonColor: "#333",
+    confirmButtonText: "Sí, he recibido la obra",
+    background: "#181818",
+    color: "#d4af37",
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      // Usamos el módulo api.js para hacer la petición
+      const res = await api.postJSON("confirmar_recepcion", { id_obra: id_obra });
+      
+      if (res.success) {
+        alerta("¡Transacción Sellada!", res.message, "success");
+        loadVaultData(); // Recarga la tabla
+        loadUserData();  // Actualiza los saldos arriba en la cabecera
+      } else {
+        alerta("Aviso del Senado", res.message, "error");
+      }
+    }
+  });
 }

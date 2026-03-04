@@ -159,26 +159,109 @@ class Puja
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
-
-    /**
-     * Obtiene las pujas activas de un usuario para su Bóveda Personal.
+/**
+     * Obtiene las pujas de un usuario para su Bóveda Personal (Mejorado para Escrow).
      */
     public function obtenerPujasMecenas($id_usuario)
     {
-        $sql = "SELECT o.titulo, o.precio_actual, o.fecha_fin,
+        // Añadimos o.id_obra, o.estado y o.id_comprador al SELECT
+        // Usamos un CASE para manejar los distintos estados de la obra en lugar de un simple IF
+        $sql = "SELECT o.id_obra, o.titulo, o.precio_actual, o.fecha_fin, o.estado, o.id_comprador,
                        MAX(p.monto) as mi_monto,
-                       IF(MAX(p.monto) >= o.precio_actual, 'Ganando', 'Superado') as estado_puja
+                       CASE
+                           WHEN o.estado = 'ACTIVA' AND MAX(p.monto) >= o.precio_actual THEN 'Ganando'
+                           WHEN o.estado = 'ACTIVA' AND MAX(p.monto) < o.precio_actual THEN 'Superado'
+                           WHEN o.estado = 'FINALIZADA' AND o.id_comprador = ? THEN 'Adjudicada (En tránsito)'
+                           WHEN o.estado = 'ENTREGADA' AND o.id_comprador = ? THEN 'En Propiedad'
+                           ELSE 'Perdida'
+                       END as estado_puja
                 FROM puja p
                 JOIN obra o ON p.id_obra = o.id_obra
-                WHERE p.id_usuario = ? AND o.estado = 'ACTIVA'
-                GROUP BY o.id_obra, o.titulo, o.precio_actual, o.fecha_fin
-                ORDER BY o.fecha_fin ASC";
+                WHERE p.id_usuario = ?
+                GROUP BY o.id_obra, o.titulo, o.precio_actual, o.fecha_fin, o.estado, o.id_comprador
+                ORDER BY o.fecha_fin DESC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("i", $id_usuario);
+        // Pasamos el id_usuario 3 veces porque ahora el SQL tiene tres interrogaciones (?)
+        $stmt->bind_param("iii", $id_usuario, $id_usuario, $id_usuario);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+    /*
+    * MOTOR TRANSACCIONAL PARA ESCROW (Liberación de fondos)
+    */
+    public function confirmarRecepcion($id_obra, $id_comprador) {
+        
+        // INICIO DE TRANSACCIÓN ACID
+        // A partir de esta línea, MySQL no guardará los cambios permanentemente hasta que hagamos 'commit()'.
+        $this->db->begin_transaction();
+
+        try {
+            // 1. BLOQUEO PESIMISTA Y VALIDACIÓN DE SEGURIDAD
+            // Usamos 'FOR UPDATE' al final del SELECT. Esto bloquea esta fila de la obra en MySQL.
+            // Evita que el usuario, haciendo doble clic rápido o trampas, ejecute esta función 2 veces a la vez.
+            $sql_obra = "SELECT precio_actual, id_vendedor, estado, id_comprador FROM obra WHERE id_obra = ? FOR UPDATE";
+            $stmt_obra = $this->db->prepare($sql_obra);
+            $stmt_obra->bind_param("i", $id_obra);
+            $stmt_obra->execute();
+            $obra_bd = $stmt_obra->get_result()->fetch_assoc();
+
+            // Blindaje 1: Comprobar que la obra existe y está esperando ser entregada ('FINALIZADA')
+            if (!$obra_bd || $obra_bd['estado'] !== 'FINALIZADA') {
+                throw new Exception("Operación rechazada. La obra no existe o ya fue liquidada.");
+            }
+            // Blindaje 2: Evitar que un usuario libere los fondos de una obra que no ha comprado él.
+            if ($obra_bd['id_comprador'] != $id_comprador) {
+                throw new Exception("Seguridad: Autorización denegada. No eres el adjudicatario de esta obra.");
+            }
+
+            $precio_final = $obra_bd['precio_actual'];
+            $id_vendedor = $obra_bd['id_vendedor'];
+
+            // 2. COBRO AL COMPRADOR
+            // Le restamos el precio final de su 'saldo_bloqueado'. El dinero sale de su cuenta definitivamente.
+            $sql_comprador = "UPDATE usuario SET saldo_bloqueado = saldo_bloqueado - ? WHERE id_usuario = ?";
+            $stmt_comprador = $this->db->prepare($sql_comprador);
+            $stmt_comprador->bind_param("di", $precio_final, $id_comprador);
+            $stmt_comprador->execute();
+
+            // AUREUS se queda un 5% de comisión por el servicio. El artista se lleva el 95% restante.
+            $comision = $precio_final * 0.05;
+            $pago_vendedor = $precio_final * 0.95;
+
+            // 4. PAGO AL VENDEDOR (ARTISTA)
+            // Se lo sumamos a su 'saldo_disponible' para que pueda retirarlo a su banco o usarlo para pujar.
+            $sql_vendedor = "UPDATE usuario SET saldo_disponible = saldo_disponible + ? WHERE id_usuario = ?";
+            $stmt_vendedor = $this->db->prepare($sql_vendedor);
+            $stmt_vendedor->bind_param("di", $pago_vendedor, $id_vendedor);
+            $stmt_vendedor->execute();
+
+            // 5. MARCAR COMO FINALIZADA DEFINITIVAMENTE
+            // Cambiamos a 'ENTREGADA'. Así evitamos que este script se pueda volver a ejecutar para esta obra.
+            $sql_estado = "UPDATE obra SET estado = 'ENTREGADA' WHERE id_obra = ?";
+            $stmt_estado = $this->db->prepare($sql_estado);
+            $stmt_estado->bind_param("i", $id_obra);
+            $stmt_estado->execute();
+
+            // Guardamos el recibo de la transacción para el administrador en el log.
+            $detalle_log = "Fondos liberados (Escrow): Obra #{$id_obra}. Vendedor #{$id_vendedor} recibe {$pago_vendedor}€. Comisión AUREUS: {$comision}€.";
+            $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, fecha) VALUES (?, 'LIBERACION_FONDOS', ?, NOW())";
+            $stmt_log = $this->db->prepare($sql_log);
+            $stmt_log->bind_param("is", $id_comprador, $detalle_log);
+            $stmt_log->execute();
+
+            // Si todo ha ido bien, guardamos todos los cambios (updates de saldos, estados y logs) de golpe en la BD.
+            $this->db->commit();
+            
+            return ["success" => true, "message" => "Fondos liberados y transferidos al artista. ¡Disfruta de tu nueva obra!"];
+
+        } catch (Exception $e) {
+            // Si ha fallado algo deshacemos CUALQUIER cambio que se haya intentado hacer en este bloque.
+            // Nadie pierde dinero por errores del servidor.
+            $this->db->rollback();
+            return ["success" => false, "message" => $e->getMessage()];
+        }
     }
 }
 ?>

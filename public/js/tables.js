@@ -69,7 +69,7 @@ export const tablas = {
       ],
     }),
 
-  crearBoveda: (id, datos) =>
+  crearBoveda: (id, datos, cbConfirmar) =>
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
@@ -88,6 +88,26 @@ export const tablas = {
           },
         },
         { title: "Estado", field: "estado_puja" },
+        // COLUMNA DE ESCROW 
+        {
+          title: "Acción",
+          formatter: (cell) => {
+            const row = cell.getData();
+            // Mostramos el botón solo si somos el ganador y está pendiente de entrega
+            if (row.estado === 'FINALIZADA' && row.estado_puja === 'Adjudicada (En tránsito)') {
+              return `<button class="btn-gold" style="padding: 4px 8px; font-size: 0.8rem;">Recibida</button>`;
+            }
+            return "";
+          },
+          hozAlign: "center",
+          headerSort: false,
+          cellClick: (e, cell) => {
+            const row = cell.getData();
+            if (row.estado === 'FINALIZADA' && row.estado_puja === 'Adjudicada (En tránsito)') {
+              cbConfirmar(row.id_obra); // Llamamos al callback que le pasaremos desde main.js
+            }
+          }
+        }
       ],
     }),
 
