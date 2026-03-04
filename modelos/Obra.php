@@ -130,9 +130,9 @@ public function obtenerCatalogoActivo() {
                 $sql_update = "UPDATE obra SET estado = 'FINALIZADA', id_comprador = ? WHERE id_obra = ?";
                 $stmt_update = $this->db->prepare($sql_update);
                 $stmt_update->bind_param("ii", $id_comprador, $id_obra);
-            } else {
-                // Si está desierta (null), le pasamos el NULL directamente en el texto del SQL
-                $sql_update = "UPDATE obra SET estado = 'FINALIZADA', id_comprador = NULL WHERE id_obra = ?";
+                } else {
+                // Si está desierta (null), la pasamos a estado DESIERTA para no falsear las ventas en Python
+                $sql_update = "UPDATE obra SET estado = 'DESIERTA', id_comprador = NULL WHERE id_obra = ?";
                 $stmt_update = $this->db->prepare($sql_update);
                 $stmt_update->bind_param("i", $id_obra);
             }

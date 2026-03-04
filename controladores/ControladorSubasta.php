@@ -174,7 +174,6 @@ echo json_encode([
             "id_vendedor" => $obra['id_vendedor'] 
         ]);
         exit();
-        exit();
     }
 
     /**
@@ -283,7 +282,7 @@ echo json_encode([
         session_start();
         header('Content-Type: application/json');
         
-        if ($_SESSION['user_rol'] !== 'admin') { 
+        if (!isset($_SESSION['user_rol']) || $_SESSION['user_rol'] !== 'admin') {
             echo json_encode(["error" => "No autorizado"]); 
             exit(); 
         }
@@ -299,7 +298,7 @@ echo json_encode([
         session_start();
         header('Content-Type: application/json');
 
-        if ($_SESSION['user_rol'] !== 'admin') { 
+        if (!isset($_SESSION['user_rol']) || $_SESSION['user_rol'] !== 'admin') {
             echo json_encode(["success" => false, "message" => "Acceso denegado"]); 
             exit(); 
         }
