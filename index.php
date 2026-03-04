@@ -111,6 +111,16 @@ switch ($accion) {
         $controlador->obtenerMisPujas();
         break;
 
+    case 'liquidar_vencidas':
+        $controlador = new ControladorSubasta();
+        $controlador->liquidarVencidas();
+        break;
+
+    case 'confirmar_recepcion':
+        $controlador = new ControladorSubasta();
+        $controlador->confirmarRecepcionObra();
+        break;
+
     // --- ESTOS SON LOS 3 CASOS QUE FALTABAN/FALLABAN ---
     case 'obtener_detalle':
         $controlador = new ControladorSubasta();

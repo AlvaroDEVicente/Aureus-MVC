@@ -313,5 +313,51 @@ echo json_encode([
         echo json_encode(["success" => $exito]);
         exit();
     }
+
+    /**
+     * ENDPOINT: Liquidar Subastas Vencidas
+     * ------------------------------------
+     * Llamaremos a esto de fondo (background) desde JS cuando alguien entre a la app,
+     * para mantener el estado de las obras siempre al día sin necesidad de CRON jobs.
+     */
+    public function liquidarVencidas() {
+        header('Content-Type: application/json');
+        
+        // Llamamos al modelo para que haga el trabajo sucio
+        $liquidadas = $this->modeloObra->liquidarSubastasVencidas();
+        
+        // Devolvemos el resultado al frontend
+        echo json_encode(["success" => true, "liquidadas" => $liquidadas]);
+        exit();
+    }
+
+    /**
+     * ENDPOINT: Confirmar Recepción (Liberar Fondos)
+     * Recibe una petición POST desde la "Bóveda" del usuario cuando hace clic en "Confirmar Recepción".
+     */
+    public function confirmarRecepcionObra() {
+        session_start();
+        header('Content-Type: application/json');
+
+        // Blindaje: Solo usuarios logueados pueden tocar el sistema financiero.
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(["success" => false, "message" => "Sesión no válida o caducada."]);
+            exit();
+        }
+
+        // Leemos el JSON que nos manda el script.js a través de fetch
+        $datos = json_decode(file_get_contents("php://input"), true);
+        $id_obra = (int) $datos['id_obra'];
+        
+        // Usamos el ID de la sesión por seguridad, nunca confiamos en un ID enviado desde el frontend
+        $id_comprador = $_SESSION['user_id'];
+
+        // Llamamos al motor transaccional del modelo Puja
+        $resultado = $this->modeloPuja->confirmarRecepcion($id_obra, $id_comprador);
+        
+        // Devolvemos si fue un éxito o si el motor escupió un error (Exception)
+        echo json_encode($resultado);
+        exit();
+    }
 }
 ?>
