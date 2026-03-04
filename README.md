@@ -27,7 +27,7 @@ El proyecto se fundamenta en una arquitectura distribuida que combina un monolit
 ### 💻 Frontend (Cliente - Interfaz SPA)
 * **Tecnologías:** HTML5, CSS3 (Custom Properties), JavaScript Vanilla (ES6+).
 * **Librerías UX/UI:**
-* * **Chart.js:** Gráficas de evolución de valor y distribución de carteras.
+  * **Chart.js:** Gráficas de evolución de valor y distribución de carteras.
   * **Tabulator:** Tablas dinámicas para los registros de la bóveda.
   * **noUiSlider:** Filtro interactivo de presupuestos en el catálogo.
   * **EasyTimer.js:** Sincronización precisa de los relojes de subasta.
