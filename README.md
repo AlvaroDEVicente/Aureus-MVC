@@ -26,7 +26,12 @@ El proyecto se fundamenta en una arquitectura distribuida que combina un monolit
 
 ### 💻 Frontend (Cliente - Interfaz SPA)
 * **Tecnologías:** HTML5, CSS3 (Custom Properties), JavaScript Vanilla (ES6+).
-* **Librerías UX/UI:** Chart.js (evolución de valor y carteras), Tabulator (registros de bóveda), SweetAlert2 (alertas inmersivas) y PayPal JS SDK.
+* **Librerías UX/UI:** * **Chart.js:** Gráficas de evolución de valor y distribución de carteras.
+  * **Tabulator:** Tablas dinámicas para los registros de la bóveda.
+  * **noUiSlider:** Filtro interactivo de presupuestos en el catálogo.
+  * **EasyTimer.js:** Sincronización precisa de los relojes de subasta.
+  * **SweetAlert2:** Alertas inmersivas y modales de confirmación.
+  * **PayPal JS SDK:** Pasarela de simulación de recarga de fondos.
 * **Enfoque:** Single Page Application (SPA) gestionada mediante Fetch API. Renderizado dinámico y lógica UX adaptativa sin recargas de página.
 
 ### ⚙️ Backend Principal (Servidor PHP)
