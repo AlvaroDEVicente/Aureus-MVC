@@ -1,12 +1,18 @@
-# Ignorar las imágenes subidas por los usuarios
-public/uploads/*
-!public/uploads/.gitkeep
+# Entornos virtuales y cachés de Python
+api_python/.venv/
+api_python/__pycache__/
+api_python/*.pyc
 
-# Ignorar archivos del sistema operativo
+# Cachés locales
+public/uploads/ticker_cache.json
+
+# Archivos subidos por los usuarios (Mantenemos la carpeta pero ignoramos su contenido)
+public/uploads/*
+!public/uploads/default_obra.png
+
+# Archivos de Sistema Operativo
 .DS_Store
 Thumbs.db
 
-# Ignorar el entorno virtual de Python y archivos temporales
-api_python/.venv/
-api_python/__pycache__/
-*.pyc
+# Credenciales (si en el futuro añades un .env)
+.env

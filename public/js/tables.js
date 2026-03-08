@@ -1,16 +1,49 @@
+/**
+ * @file tables.js
+ * @description Módulo de configuración e instanciación de tablas interactivas.
+ */
+
 import { TabulatorFull as Tabulator } from "https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/+esm";
+
+// ============================================================================
+// FIX CSS PARA TABULATOR:
+// 1. Evita que la tabla se aplaste a 0px (min-height: 60px).
+// 2. Centra el placeholder sin ocupar espacio extra cuando hay datos.
+// ============================================================================
+const style = document.createElement("style");
+style.innerHTML = `
+  .tabulator .tabulator-tableholder {
+    min-height: 50px !important; 
+  }
+  .tabulator .tabulator-placeholder {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  .tabulator .tabulator-placeholder span {
+    color: #888 !important;
+    font-size: 0.95rem !important;
+    font-style: italic;
+  }
+`;
+document.head.appendChild(style);
+
+const FORMATO_MONEDA = {
+  decimal: ",",
+  thousand: ".",
+  symbol: " €",
+  symbolAfter: "p",
+};
 
 export const tablas = {
   crearTicker: (id, datos) =>
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
-      height: "auto", // Un pelín más alto para rellenar el hueco
+      placeholder: "<span>Sin actividad reciente.</span>",
       columns: [
-        // 1. Damos todo el espacio dinámico al título de la obra
         { title: "Obra", field: "titulo_obra", widthGrow: 1 },
-
-        // 2. Columna de Dinero: Ancho fijo, alineada a la derecha y título corto
         {
           title: "Valor",
           field: "monto",
@@ -18,12 +51,7 @@ export const tablas = {
           hozAlign: "right",
           headerHozAlign: "right",
           formatter: "money",
-          formatterParams: {
-            decimal: ",",
-            thousand: ".",
-            symbol: " €",
-            symbolAfter: "p",
-          },
+          formatterParams: FORMATO_MONEDA,
         },
       ],
     }),
@@ -32,18 +60,14 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
+      placeholder: "<span>Aún no hay pujas. ¡Sé el primero!</span>",
       columns: [
         { title: "Mecenas", field: "nombre_usuario" },
         {
           title: "Monto",
           field: "monto",
           formatter: "money",
-          formatterParams: {
-            decimal: ",",
-            thousand: ".",
-            symbol: " €",
-            symbolAfter: "p",
-          },
+          formatterParams: FORMATO_MONEDA,
         },
       ],
     }),
@@ -52,18 +76,14 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
+      placeholder: "<span>Tu taller está vacío. ¡Forja tu primera obra!</span>",
       columns: [
         { title: "Obra", field: "titulo", widthGrow: 2 },
         {
           title: "Precio Actual",
           field: "precio_actual",
           formatter: "money",
-          formatterParams: {
-            decimal: ",",
-            thousand: ".",
-            symbol: " €",
-            symbolAfter: "p",
-          },
+          formatterParams: FORMATO_MONEDA,
         },
         { title: "Estado", field: "estado", hozAlign: "center" },
       ],
@@ -73,28 +93,24 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
-      placeholder: "Aún no has participado en ninguna subasta.",
+      placeholder: "<span>Aún no has participado en ninguna subasta.</span>",
       columns: [
         { title: "Obra", field: "titulo", widthGrow: 2 },
         {
           title: "Mi Puja",
           field: "mi_monto",
           formatter: "money",
-          formatterParams: {
-            decimal: ",",
-            thousand: ".",
-            symbol: " €",
-            symbolAfter: "p",
-          },
+          formatterParams: FORMATO_MONEDA,
         },
         { title: "Estado", field: "estado_puja" },
-        // COLUMNA DE ESCROW 
         {
           title: "Acción",
           formatter: (cell) => {
             const row = cell.getData();
-            // Mostramos el botón solo si somos el ganador y está pendiente de entrega
-            if (row.estado === 'FINALIZADA' && row.estado_puja === 'Adjudicada (En tránsito)') {
+            if (
+              row.estado === "FINALIZADA" &&
+              row.estado_puja === "Adjudicada (En tránsito)"
+            ) {
               return `<button class="btn-gold" style="padding: 4px 8px; font-size: 0.8rem;">Recibida</button>`;
             }
             return "";
@@ -103,11 +119,14 @@ export const tablas = {
           headerSort: false,
           cellClick: (e, cell) => {
             const row = cell.getData();
-            if (row.estado === 'FINALIZADA' && row.estado_puja === 'Adjudicada (En tránsito)') {
-              cbConfirmar(row.id_obra); // Llamamos al callback que le pasaremos desde main.js
+            if (
+              row.estado === "FINALIZADA" &&
+              row.estado_puja === "Adjudicada (En tránsito)"
+            ) {
+              cbConfirmar(row.id_obra);
             }
-          }
-        }
+          },
+        },
       ],
     }),
 
@@ -115,7 +134,7 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
-      placeholder: "No hay obras pendientes.",
+      placeholder: "<span>No hay obras pendientes de revisión.</span>",
       columns: [
         { title: "Obra", field: "titulo", widthGrow: 2 },
         { title: "Artista", field: "nombre_artista", widthGrow: 2 },
@@ -123,12 +142,7 @@ export const tablas = {
           title: "Precio Salida",
           field: "precio_inicial",
           formatter: "money",
-          formatterParams: {
-            decimal: ",",
-            thousand: ".",
-            symbol: " €",
-            symbolAfter: "p",
-          },
+          formatterParams: FORMATO_MONEDA,
         },
         {
           title: "Acción",
@@ -145,13 +159,13 @@ export const tablas = {
     new Tabulator(id, {
       data: datos,
       layout: "fitColumns",
+      placeholder: "<span>No hay ciudadanos registrados en el sistema.</span>",
       columns: [
         { title: "ID", field: "id_usuario", width: 60 },
         {
           title: "Nombre",
           field: "nombre",
           widthGrow: 2,
-          // Si está baneado (activo=0), tachamos el nombre
           formatter: (cell) =>
             cell.getData().activo == 0
               ? `<span style="text-decoration: line-through; color: #888;">${cell.getValue()}</span>`
@@ -162,12 +176,7 @@ export const tablas = {
           title: "Saldo",
           field: "saldo_disponible",
           formatter: "money",
-          formatterParams: {
-            decimal: ",",
-            thousand: ".",
-            symbol: " €",
-            symbolAfter: "p",
-          },
+          formatterParams: FORMATO_MONEDA,
         },
         {
           title: "Rol",
@@ -195,13 +204,41 @@ export const tablas = {
           hozAlign: "center",
           headerSort: false,
           cellClick: (e, cell) => {
-            if (cell.getData().activo == 1) {
-              cbBorrar(cell.getData().id_usuario);
-            } else {
-              cbAmnistiar(cell.getData().id_usuario);
-            }
+            if (cell.getData().activo == 1) cbBorrar(cell.getData().id_usuario);
+            else cbAmnistiar(cell.getData().id_usuario);
           },
         },
+      ],
+    }),
+
+  crearHistorialTransacciones: (id, datos) =>
+    new Tabulator(id, {
+      data: datos,
+      layout: "fitColumns",
+      pagination: "local",
+      paginationSize: 5,
+      placeholder:
+        "<span>No se han registrado transacciones o movimientos en el Libro Mayor.</span>",
+      columns: [
+        { title: "Fecha", field: "fecha", width: 160 },
+        {
+          title: "Concepto",
+          field: "accion",
+          width: 180,
+          formatter: (cell) => {
+            const val = cell.getValue();
+            if (val === "INGRESO")
+              return '<span class="text-success" style="font-weight: bold;">Depósito</span>';
+            if (val === "PUJA")
+              return '<span class="text-warning" style="font-weight: bold;">Licitación</span>';
+            if (val === "LIBERACION_FONDOS")
+              return '<span class="text-info" style="font-weight: bold;">Escrow</span>';
+            if (val === "PAGO_LICENCIA")
+              return '<span class="text-danger" style="font-weight: bold;">Licencia</span>';
+            return val;
+          },
+        },
+        { title: "Detalle de la Operación", field: "detalle", widthGrow: 1 },
       ],
     }),
 };

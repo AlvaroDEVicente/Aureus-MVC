@@ -1,7 +1,20 @@
+/**
+ * @file timers.js
+ * @description Implementación de una fachada para la librería easytimer.js.
+ * Gestiona el ciclo de vida de los temporizadores de cuenta regresiva en las tarjetas
+ * de subasta y asegura la ejecución de callbacks al finalizar el tiempo.
+ */
+
 import { Timer } from "https://cdn.jsdelivr.net/npm/easytimer.js@4.6.0/+esm";
 
 export const reloj = {
-  // Crea un reloj y lo inyecta en un elemento HTML
+  /**
+   * Instancia e inyecta un cronómetro en el DOM.
+   * @param {number} segundos - Tiempo restante para la expiración.
+   * @param {HTMLElement} elementoHTML - Nodo del DOM donde se renderizará el texto.
+   * @param {Function} [onTerminado] - Función de resolución asíncrona opcional.
+   * @returns {Timer|null} Instancia del objeto Timer o null si la subasta ya finalizó.
+   */
   iniciar: (segundos, elementoHTML, onTerminado) => {
     if (segundos <= 0) {
       elementoHTML.innerText = "FINALIZADA";

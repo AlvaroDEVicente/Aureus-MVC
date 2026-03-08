@@ -13,22 +13,18 @@
     />
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
-
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css"
       rel="stylesheet"
     />
-
     <link
       href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css"
       rel="stylesheet"
@@ -108,10 +104,15 @@
             <div id="guest-panel" class="d-none gap-2">
               <a
                 href="login.php"
-                class="btn btn-outline-secondary text-gold border-secondary"
+                class="btn btn-outline-secondary text-gold border-secondary px-4 py-2"
                 >Iniciar Sesión</a
               >
-              <a href="registro.php" class="btn btn-gold">Registrarse</a>
+              <a
+                href="registro.php"
+                class="btn btn-gold px-4 py-2"
+                style="font-family: &quot;Cinzel&quot;, serif"
+                >Registrarse</a
+              >
             </div>
 
             <div
@@ -127,10 +128,9 @@
                   <span id="nav-saldo-disponible" class="text-gold fw-bold"
                     >...</span
                   >
-                  €
                 </div>
                 <div class="small text-muted">
-                  Bloqueado: <span id="nav-saldo-bloqueado">...</span> €
+                  Bloqueado: <span id="nav-saldo-bloqueado">...</span>
                 </div>
               </div>
 
@@ -192,17 +192,35 @@
               <div class="filter-group mb-4">
                 <h4 class="text-muted small mb-3">Presupuesto Máximo</h4>
                 <div id="slider-precio"></div>
-                <div class="precio-valores d-flex justify-content-between mt-3">
-                  <span
-                    class="precio-min text-muted small"
-                    id="precio-min-label"
-                    >0 €</span
-                  >
-                  <span
-                    class="precio-max text-muted small"
-                    id="precio-max-label"
-                    >... €</span
-                  >
+                <div
+                  class="precio-valores d-flex justify-content-between mt-3 gap-2"
+                >
+                  <div class="input-group input-group-sm">
+                    <input
+                      type="number"
+                      id="input-precio-min"
+                      class="form-control bg-dark text-light border-secondary"
+                      min="0"
+                      placeholder="Mínimo"
+                    />
+                    <span
+                      class="input-group-text bg-dark text-gold border-secondary"
+                      >€</span
+                    >
+                  </div>
+                  <div class="input-group input-group-sm">
+                    <input
+                      type="number"
+                      id="input-precio-max"
+                      class="form-control bg-dark text-light border-secondary"
+                      min="0"
+                      placeholder="Máximo"
+                    />
+                    <span
+                      class="input-group-text bg-dark text-gold border-secondary"
+                      >€</span
+                    >
+                  </div>
                 </div>
                 <div
                   id="filtro-contador"
@@ -214,7 +232,6 @@
 
               <div class="filter-group">
                 <h4 class="text-muted small mb-3">Ordenar Catálogo</h4>
-
                 <div class="form-check mb-2">
                   <input
                     class="form-check-input bg-dark border-gold"
@@ -231,7 +248,6 @@
                     >Próximas a cerrar</label
                   >
                 </div>
-
                 <div class="form-check mb-2">
                   <input
                     class="form-check-input bg-dark border-gold"
@@ -247,7 +263,6 @@
                     >Precio: Menor a Mayor</label
                   >
                 </div>
-
                 <div class="form-check">
                   <input
                     class="form-check-input bg-dark border-gold"
@@ -292,7 +307,6 @@
               >Colección de Primavera</span
             >
           </div>
-
           <div
             id="catalog-container"
             class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"
@@ -315,7 +329,6 @@
               <div class="price-row mb-auto">
                 <span class="text-muted small d-block">Puja Actual</span>
                 <strong class="card-precio-actual text-gold fs-5">0</strong>
-                <span class="text-gold">€</span>
               </div>
               <div
                 class="timer-container mt-3 mb-3 p-2 border border-secondary rounded text-center"
@@ -350,11 +363,11 @@
           <h2 id="detail-title" class="text-gold">Cargando...</h2>
           <img
             id="detail-image"
-            class="detail-main-img img-fluid"
+            class="w-100 rounded border border-secondary shadow-lg"
+            style="object-fit: cover; max-height: 500px"
             src=""
             alt="Obra en detalle"
           />
-
           <div
             class="info-box mt-3 p-4 border border-secondary rounded"
             style="background: var(--dark-gray)"
@@ -382,15 +395,13 @@
             </div>
             <p class="current-bid">
               Valor a Batir:
-              <strong id="current-precio-actual" class="text-gold">0</strong> €
+              <strong id="current-precio-actual" class="text-gold">0</strong>
             </p>
-
             <form id="bid-form">
               <input type="hidden" id="input-id-obra" value="" />
               <label for="input-monto" class="text-muted mb-1"
                 >Oferta en firme (€):</label
               >
-
               <input
                 type="number"
                 id="input-monto"
@@ -398,7 +409,6 @@
                 step="0.01"
                 class="form-control mb-1"
               />
-
               <small
                 id="fee-calculator"
                 class="text-muted d-block mb-3"
@@ -407,7 +417,6 @@
                 Total a bloquear (incl. 12% Prima):
                 <strong class="text-gold">0.00 €</strong>
               </small>
-
               <button type="submit" id="btn-submit-bid" class="btn-gold w-100">
                 Sellar Transacción
               </button>
@@ -418,8 +427,10 @@
             class="chart-panel mt-4 p-4 border border-secondary rounded"
             style="background: var(--dark-gray)"
           >
-            <h3 class="text-gold h5">Evolución del Valor</h3>
-            <canvas id="price-chart" height="200"></canvas>
+            <h3 class="text-gold h5 mb-3">Evolución del Valor</h3>
+            <div style="position: relative; height: 250px; width: 100%">
+              <canvas id="price-chart"></canvas>
+            </div>
           </div>
 
           <div
@@ -435,7 +446,6 @@
 
     <section id="view-profile" class="container mt-4" style="display: none">
       <h2 class="section-title">Perfil del Ciudadano</h2>
-
       <div class="row justify-content-center align-items-center mt-4 mb-4">
         <div class="col-12 col-md-4 text-center mb-4">
           <div class="avatar-wrapper mx-auto" style="cursor: default">
@@ -474,6 +484,7 @@
                 class="form-control bg-dark text-white border-secondary mt-1"
                 rows="3"
                 placeholder="Escribe tu historia..."
+                spellcheck="false"
               ></textarea>
             </div>
             <button
@@ -493,7 +504,9 @@
             style="background: var(--dark-gray)"
           >
             <h3 class="text-gold h5 mb-4">Capital Desplegado</h3>
-            <canvas id="profile-chart"></canvas>
+            <div style="position: relative; height: 220px; width: 100%">
+              <canvas id="profile-chart"></canvas>
+            </div>
           </div>
         </div>
 
@@ -503,7 +516,6 @@
             style="background: var(--dark-gray)"
           >
             <h3 class="text-gold h5 mb-4">Credenciales</h3>
-
             <ul class="list-unstyled" style="font-size: 1.1rem; line-height: 2">
               <li>
                 <strong class="text-muted">Estado de la cuenta:</strong>
@@ -563,7 +575,6 @@
       <template id="form-subir-obra-template">
         <div class="form-container-fade-in">
           <h3 class="text-gold mb-4">Aportar Nuevo Lote a la Bóveda</h3>
-
           <form id="form-nueva-obra" enctype="multipart/form-data">
             <div class="mb-3">
               <label class="text-muted small">Título de la Obra</label>
@@ -575,7 +586,6 @@
                 placeholder="Ej. El Ocaso de Adriano"
               />
             </div>
-
             <div class="mb-3">
               <label class="text-muted small"
                 >Descripción y Certificaciones</label
@@ -587,14 +597,16 @@
                 required
               ></textarea>
             </div>
-
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="text-muted small">Precio Salida (€)</label>
+                <label class="text-muted small"
+                  >Precio Salida (€)
+                  <span class="text-danger">*Mín. 50€</span></label
+                >
                 <input
                   type="number"
                   step="0.01"
-                  min="1"
+                  min="50"
                   name="precio"
                   class="form-control"
                   required
@@ -610,7 +622,6 @@
                 />
               </div>
             </div>
-
             <div class="mb-4">
               <label class="text-muted small"
                 >Imagen de la Obra (JPG/PNG/WEBP)</label
@@ -623,7 +634,6 @@
                 required
               />
             </div>
-
             <div class="d-flex gap-2">
               <button type="submit" class="btn-gold w-100">
                 Publicar en Bóveda
@@ -665,17 +675,14 @@
           >
             <h3 class="text-gold h5">Estado de Cuenta</h3>
             <hr class="border-secondary" />
-
             <div class="d-flex justify-content-between mb-2">
               <span>Saldo Total:</span
               ><span id="vault-total" class="fw-bold">0.00 €</span>
             </div>
-
             <div class="d-flex justify-content-between mb-2">
               <span>En Pujas (Bloqueado):</span
               ><span id="vault-blocked" class="text-muted">0.00 €</span>
             </div>
-
             <div
               class="d-flex justify-content-between mt-3 pt-3 border-top border-secondary"
             >
@@ -697,6 +704,21 @@
           >
             <h3 class="text-gold h5">Mis Pujas en Curso</h3>
             <div id="vault-bids-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mt-4">
+        <div class="col-12">
+          <div
+            class="card-auction p-4 border border-secondary rounded"
+            style="background: var(--dark-gray)"
+          >
+            <h3 class="text-gold h5 mb-3">
+              <i class="fa-solid fa-book-journal-whills me-2"></i> Libro Mayor
+              de Transacciones
+            </h3>
+            <div id="vault-transactions-table"></div>
           </div>
         </div>
       </div>
@@ -854,6 +876,59 @@
         <h3 class="text-gold h5 mb-3">Gestión de Ciudadanos (Usuarios)</h3>
         <div id="admin-users-table"></div>
       </div>
+
+      <div class="text-end mb-4">
+        <button
+          onclick="toggleGodMode()"
+          class="btn btn-outline-danger btn-sm"
+          style="border-color: #dc3545"
+        >
+          <i class="fa-solid fa-skull"></i> Revelar Poderes Imperiales
+        </button>
+      </div>
+
+      <div
+        id="god-mode-panel"
+        class="mb-5 p-4 border rounded d-none"
+        style="
+          background: rgba(220, 53, 69, 0.05);
+          border-color: #dc3545 !important;
+        "
+      >
+        <h4
+          class="text-danger mb-3"
+          style="
+            font-size: 1.1rem;
+            border-bottom: 1px solid #dc3545;
+            padding-bottom: 5px;
+          "
+        >
+          <i class="fa-solid fa-bolt"></i> Panel de Control Absoluto (Modo Dios)
+        </h4>
+        <p class="text-muted small mb-4">
+          ⚠️ PELIGRO: Estas acciones alteran la base de datos evadiendo las
+          reglas de negocio y transacciones del sistema. Usar solo para limpieza
+          o demostraciones del tribunal.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <button onclick="adminSumarFondos()" class="btn btn-outline-success">
+            <i class="fa-solid fa-money-bill-wave"></i> Inyectar Fondos a
+            Usuario
+          </button>
+          <button
+            onclick="adminModificarTiempo()"
+            class="btn btn-outline-warning"
+          >
+            <i class="fa-solid fa-clock"></i> Alterar Reloj de Obra
+          </button>
+          <button
+            onclick="adminBorrarObra()"
+            class="btn btn-danger text-black fw-bold"
+          >
+            <i class="fa-solid fa-fire"></i> Fulminar Obra (Físico)
+          </button>
+        </div>
+      </div>
     </section>
 
     <div
@@ -900,9 +975,7 @@
               required
             />
           </div>
-
           <div id="paypal-button-container" class="mt-3"></div>
-
           <button
             type="button"
             onclick="closeDepositModal()"
@@ -923,22 +996,13 @@
           &copy; 2026 AUREUS. Imperio de Subastas Exclusivas.
         </p>
         <nav aria-label="Enlaces de pie de página">
-          <a
-            href="#"
-            class="text-gold mx-2 small text-decoration-none"
-            tabindex="0"
+          <a href="#" class="text-gold mx-2 small text-decoration-none"
             >Términos Legales</a
           >
-          <a
-            href="#"
-            class="text-gold mx-2 small text-decoration-none"
-            tabindex="0"
+          <a href="#" class="text-gold mx-2 small text-decoration-none"
             >Accesibilidad</a
           >
-          <a
-            href="#"
-            class="text-gold mx-2 small text-decoration-none"
-            tabindex="0"
+          <a href="#" class="text-gold mx-2 small text-decoration-none"
             >Soporte al Mecenas</a
           >
         </nav>
@@ -946,9 +1010,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
     <script type="module" src="js/main.js"></script>
-
     <script src="https://www.paypal.com/sdk/js?client-id=AV6U32dmQP_D374qGRyhD3_THQPhwQ_HOOSdoVDljYflDlc4UqniKdwYWV9tCjANmc_niIpZHUfgoW_Q&currency=EUR"></script>
   </body>
 </html>

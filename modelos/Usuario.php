@@ -1,48 +1,43 @@
 <?php
 /**
- * AUREUS - Proyecto Intermodular
- * Capa: MODELO (Lógica de Datos)
- * Archivo: models/Usuario.php
- * Descripción: Gestiona todas las consultas a la base de datos relacionadas 
- * con la tabla 'usuario' (Login, Registro, Consulta de saldos).
+ * Proyecto Intermodular: AUREUS
+ * Capa: Modelo (Lógica de Datos)
+ * Archivo: modelos/Usuario.php
+ * Descripción:
+ * Gestiona el ciclo de vida, autenticación y transacciones monetarias 
+ * locales vinculadas al perfil del usuario. Integra los registros 
+ * de auditoría (Libro Mayor) para garantizar la trazabilidad de operaciones.
  */
 
 class Usuario {
     
-    // 1. PROPIEDAD: Aquí guardaremos la conexión a la base de datos
+    /** @var mysqli Objeto de conexión a la base de datos. */
     private $db; 
 
     /**
-     * 2. CONSTRUCTOR
-     * Es un método mágico que se ejecuta automáticamente cuando hacemos "new Usuario($conexion)".
-     * Lo usamos para inyectarle la conexión a la base de datos al modelo.
+     * Constructor de la clase.
+     * @param mysqli $conexion Conexión activa a la base de datos.
      */
     public function __construct($conexion) {
-        // Le decimos al objeto: "Guarda esta conexión en TU propiedad interna"
         $this->db = $conexion; 
     }
 
-    // ====================================================================
-    // 3. MÉTODOS (Las antiguas funciones sueltas)
-    // ====================================================================
-
     /**
-     * Verifica las credenciales de un usuario.
-     * Reemplaza a vuestro antiguo 'procesar_login.php'
+     * Verifica la validez de las credenciales de acceso.
+     * @param string $email Correo electrónico del usuario.
+     * @param string $password Contraseña provista.
+     * @return array|false Datos esenciales de la sesión si es correcto, false si falla.
      */
     public function login($email, $password) {
         $sql = "SELECT id_usuario, nombre, password, rol, activo FROM usuario WHERE email = ?";
         
-        // Fijaos: En vez de mysqli_prepare($conexion, $sql), usamos el enfoque de objetos:
         $stmt = $this->db->prepare($sql); 
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $resultado = $stmt->get_result();
 
         if ($fila = $resultado->fetch_assoc()) {
-            // Verificamos la contraseña encriptada (¡Vuestra misma lógica segura!)
             if (password_verify($password, $fila['password'])) {
-                // Si es correcta, devolvemos un array con los datos básicos
                 return [
                     'id' => $fila['id_usuario'],
                     'nombre' => $fila['nombre'],
@@ -51,15 +46,15 @@ class Usuario {
                 ];
             }
         }
-        return false; // Login fallido
+        return false; 
     }
 
     /**
-     * Obtiene los saldos y el rol de un usuario por su ID.
-     * Reemplaza a vuestro antiguo 'get_user.php'
+     * Consulta el estado financiero y operativo de una cuenta específica.
+     * @param int $id_usuario Identificador de la cuenta.
+     * @return array|null Resultados mapeados.
      */
- public function obtenerPorId($id_usuario) {
-        // Usamos id_usuario que es el nombre real en tu tabla
+    public function obtenerPorId($id_usuario) {
         $sql = "SELECT id_usuario, nombre, saldo_disponible, saldo_bloqueado, es_artista, rol FROM usuario WHERE id_usuario = ?";
         
         $stmt = $this->db->prepare($sql);
@@ -68,42 +63,60 @@ class Usuario {
         $resultado = $stmt->get_result();
 
         if ($fila = $resultado->fetch_assoc()) {
-            // Sincronizamos el nombre del campo para el Frontend
             $fila['id'] = $fila['id_usuario']; 
             return $fila;
         }
         return null;
     }
 
-        /**
-     * Añade fondos a la bóveda del mecenas.
+    /**
+     * Modifica el saldo contable de un usuario y registra la operación en el libro de auditoría.
+     * @param int $id_usuario Identificador del usuario.
+     * @param float $monto Variación de capital a aplicar.
+     * @return bool
      */
     public function actualizarFondos($id_usuario, $monto) {
         $sql = "UPDATE usuario SET saldo_disponible = saldo_disponible + ? WHERE id_usuario = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("di", $monto, $id_usuario);
-        return $stmt->execute();
+        $exito = $stmt->execute();
+
+        if ($exito) {
+            $detalle = "Ingreso de capital registrado: +" . number_format($monto, 2) . " €";
+            
+            // Implementación de la captura dinámica de IP (Bloque 2)
+            $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            
+            $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, ip, fecha) VALUES (?, 'INGRESO', ?, ?, NOW())";
+            $stmt_log = $this->db->prepare($sql_log);
+            $stmt_log->bind_param("iss", $id_usuario, $detalle, $ip_usuario);
+            $stmt_log->execute();
+        }
+        return $exito;
     }
 
     /**
-     * Registra un nuevo usuario en la plataforma.
-     * Retorna false si el email ya existe.
+     * Formaliza la creación de un nuevo registro de identidad en el sistema.
+     * @param string $nombre Identidad del titular.
+     * @param string $email Correo de contacto.
+     * @param string $password Credencial no cifrada.
+     * @param string $rol Rol asignado por defecto.
+     * @param string $dni Documento de identificación.
+     * @param string $telefono Número de contacto.
+     * @return bool False si existe colisión de correos, True en caso de registro exitoso.
      */
     public function registrarUsuario($nombre, $email, $password, $rol, $dni, $telefono) {
-        // 1. Evitar correos duplicados
         $sql_check = "SELECT id_usuario FROM usuario WHERE email = ?";
         $stmt_check = $this->db->prepare($sql_check);
         $stmt_check->bind_param("s", $email);
         $stmt_check->execute();
         if ($stmt_check->get_result()->num_rows > 0) {
-            return false; // El correo ya está registrado
+            return false; 
         }
 
-        // 2. Hash de contraseña y lógica de rol
         $pass_segura = password_hash($password, PASSWORD_DEFAULT);
         $es_artista = ($rol === 'artista') ? 1 : 0;
 
-        // 3. Inserción
         $sql = "INSERT INTO usuario (nombre, email, password, rol, es_artista, dni, telefono) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("ssssiss", $nombre, $email, $pass_segura, $rol, $es_artista, $dni, $telefono);
@@ -111,18 +124,21 @@ class Usuario {
         return $stmt->execute();
     }
 
-/**
-     * PANEL ADMIN: Obtiene la lista completa de usuarios.
+    /**
+     * Extrae el compendio de usuarios del sistema. (Uso administrativo exclusivo).
+     * @return array
      */
     public function obtenerTodos() {
-        // AÑADIDA LA COLUMNA 'activo' A LA CONSULTA SQL
         $sql = "SELECT id_usuario, nombre, email, rol, saldo_disponible, activo, fecha_registro FROM usuario ORDER BY fecha_registro DESC";
         $resultado = $this->db->query($sql);
         return $resultado->fetch_all(MYSQLI_ASSOC);
     }
 
     /**
-     * PANEL ADMIN: Cambia el rol de un usuario.
+     * Actualiza la política de acceso de un usuario específico.
+     * @param int $id_usuario Identificador objetivo.
+     * @param string $nuevo_rol Nivel de acceso concedido.
+     * @return bool
      */
     public function actualizarRol($id_usuario, $nuevo_rol) {
         $sql = "UPDATE usuario SET rol = ? WHERE id_usuario = ?";
@@ -132,73 +148,21 @@ class Usuario {
     }
 
     /**
-     * Realiza un borrado lógico del usuario (Baneo/Desactivación).
+     * Aplica una desactivación lógica sobre una cuenta.
+     * @param int $id_usuario Identificador de la cuenta.
+     * @return bool
      */
     public function borrarUsuario($id_usuario) {
         $sql = "UPDATE usuario SET activo = 0 WHERE id_usuario = ?";
-        
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id_usuario);
-        
         return $stmt->execute();
     }
 
-/**
-     * Cobra la licencia, cambia el rol y registra el movimiento.
-     * (Versión MySQLi)
-     */
-    public function pagarLicenciaArtista($id_usuario) {
-        $coste = 19.99;
-
-        try {
-            // 1. Desactivamos el autocommit para iniciar la transacción en MySQLi
-            $this->db->autocommit(FALSE);
-
-            // 2. Verificamos si tiene saldo suficiente
-            $sql_check = "SELECT saldo_disponible FROM usuario WHERE id_usuario = ?";
-            $stmt_check = $this->db->prepare($sql_check);
-            $stmt_check->bind_param("i", $id_usuario);
-            $stmt_check->execute();
-            $resultado = $stmt_check->get_result();
-            $user = $resultado->fetch_assoc();
-
-            if (!$user || $user['saldo_disponible'] < $coste) {
-                $this->db->rollback(); // Cancelamos si no hay dinero
-                $this->db->autocommit(TRUE); // Restauramos el comportamiento normal
-                return "Capital insuficiente. Requiere 19,99 € en Saldo Disponible.";
-            }
-
-            // 3. Le cobramos y le damos los galones de artista
-            $sql_update = "UPDATE usuario SET saldo_disponible = saldo_disponible - ?, rol = 'artista', es_artista = 1 WHERE id_usuario = ?";
-            $stmt_update = $this->db->prepare($sql_update);
-            $stmt_update->bind_param("di", $coste, $id_usuario);
-            $stmt_update->execute();
-
-            // 4. Registramos el pago en el log del sistema (ya que no existe tabla transaccion en tu SQL)
-            $accion = 'PAGO_LICENCIA';
-            $detalle = "Mecenas ID {$id_usuario} adquiere Licencia de Creador por {$coste}€";
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-
-            $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, ip) VALUES (?, ?, ?, ?)";
-            $stmt_log = $this->db->prepare($sql_log);
-            $stmt_log->bind_param("isss", $id_usuario, $accion, $detalle, $ip);
-            $stmt_log->execute();
-
-            // 5. Confirmamos los cambios de la transacción
-            $this->db->commit();
-            $this->db->autocommit(TRUE); // Restauramos el comportamiento normal
-            return true;
-
-        } catch (Exception $e) {
-            // Si cualquier consulta falla, deshacemos todo
-            $this->db->rollback();
-            $this->db->autocommit(TRUE);
-            return "Error en la bóveda: " . $e->getMessage();
-        }
-    }
-
     /**
-     * Levanta el castigo y vuelve a activar al usuario (Desbaneo).
+     * Modifica el estado lógico de una cuenta inactiva restaurando su acceso.
+     * @param int $id_usuario Identificador de la cuenta.
+     * @return bool
      */
     public function amnistiarUsuario($id_usuario) {
         $sql = "UPDATE usuario SET activo = 1 WHERE id_usuario = ?";
@@ -207,12 +171,59 @@ class Usuario {
         return $stmt->execute();
     }
 
-    // ==========================================================
-    // MÉTODOS DEL PERFIL DEL CIUDADANO
-    // ==========================================================
+    /**
+     * Efectúa el cobro por adquisición de permisos de autoría, gestionando el pago de forma transaccional.
+     * @param int $id_usuario Identificador del cliente.
+     * @return bool|string True si la operación se completó, mensaje de error en caso adverso.
+     */
+    public function pagarLicenciaArtista($id_usuario) {
+        $coste = 19.99;
+
+        try {
+            $this->db->autocommit(FALSE);
+
+            $sql_check = "SELECT saldo_disponible FROM usuario WHERE id_usuario = ?";
+            $stmt_check = $this->db->prepare($sql_check);
+            $stmt_check->bind_param("i", $id_usuario);
+            $stmt_check->execute();
+            $resultado = $stmt_check->get_result();
+            $user = $resultado->fetch_assoc();
+
+            if (!$user || $user['saldo_disponible'] < $coste) {
+                $this->db->rollback(); 
+                $this->db->autocommit(TRUE); 
+                return "Disponibilidad de fondos insuficiente para cubrir la cuota de licencia.";
+            }
+
+            $sql_update = "UPDATE usuario SET saldo_disponible = saldo_disponible - ?, rol = 'artista', es_artista = 1 WHERE id_usuario = ?";
+            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update->bind_param("di", $coste, $id_usuario);
+            $stmt_update->execute();
+
+            $accion = 'PAGO_LICENCIA';
+            $detalle = "Adquisición de Licencia Comercial. Cargo aplicado: {$coste}€";
+            $ip = substr($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', 0, 45);
+
+            $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, ip) VALUES (?, ?, ?, ?)";
+            $stmt_log = $this->db->prepare($sql_log);
+            $stmt_log->bind_param("isss", $id_usuario, $accion, $detalle, $ip);
+            $stmt_log->execute();
+
+            $this->db->commit();
+            $this->db->autocommit(TRUE); 
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            $this->db->autocommit(TRUE);
+            return "Fallo en el proceso transaccional: " . $e->getMessage();
+        }
+    }
 
     /**
-     * Obtiene todos los datos relevantes para el perfil de usuario.
+     * Retorna los datos requeridos para estructurar la vista de perfil de usuario.
+     * @param int $id_usuario Identificador del cliente.
+     * @return array|null
      */
     public function obtenerPerfil($id_usuario) {
         $sql = "SELECT nombre, email, dni, rol, avatar_url, biografia FROM usuario WHERE id_usuario = ?";
@@ -223,13 +234,59 @@ class Usuario {
     }
 
     /**
-     * Guarda el texto de la biografía en la base de datos.
+     * Actualiza el registro textual correspondiente a la biografía del usuario.
+     * @param int $id_usuario Identificador del cliente.
+     * @param string $biografia Contenido provisto.
+     * @return bool
      */
     public function actualizarBiografiaBD($id_usuario, $biografia) {
         $sql = "UPDATE usuario SET biografia = ? WHERE id_usuario = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("si", $biografia, $id_usuario);
         return $stmt->execute();
+    }
+
+    // ==========================================================
+    // OPERACIONES ADMINISTRATIVAS (AUDITORÍA EXCEPCIONAL)
+    // ==========================================================
+
+    /**
+     * Ajuste artificial de fondos aplicado por un administrador de sistemas.
+     * @param int $id_usuario Identidad del receptor.
+     * @param float $cantidad Variación estática de saldo.
+     * @return bool
+     */
+    public function adminInyectarFondos($id_usuario, $cantidad) {
+        $sql = "UPDATE usuario SET saldo_disponible = saldo_disponible + ? WHERE id_usuario = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("di", $cantidad, $id_usuario);
+        $exito = $stmt->execute();
+
+        if ($exito) {
+            $detalle = "Rectificación administrativa de saldo. Incremento: +" . number_format($cantidad, 2) . " €";
+            
+            // Implementación de la captura dinámica de IP (Bloque 2)
+            $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            
+            $sql_log = "INSERT INTO log_sistema (id_usuario, accion, detalle, ip, fecha) VALUES (?, 'INGRESO', ?, ?, NOW())";
+            $stmt_log = $this->db->prepare($sql_log);
+            $stmt_log->bind_param("iss", $id_usuario, $detalle, $ip_usuario);
+            $stmt_log->execute();
+        }
+        return $exito;
+    }
+
+    /**
+     * Compila y provee la secuencia cronológica de variaciones financieras del usuario.
+     * @param int $id_usuario Identificador de cuenta.
+     * @return array Retorna la tabla de resultados.
+     */
+    public function obtenerHistorialTransacciones($id_usuario) {
+        $sql = "SELECT accion, detalle, fecha FROM log_sistema WHERE id_usuario = ? ORDER BY fecha DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $id_usuario);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }
 ?>

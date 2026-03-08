@@ -1,6 +1,6 @@
 -- ==========================================================
--- ESTRUCTURA Y DATOS DE LA BÓVEDA AUREUS
--- Generado para despliegue del proyecto Final
+-- PROYECTO INTERMODULAR: AUREUS (BÓVEDA DE DATOS)
+-- Descripción: Estructura DDL, Restricciones y Seeders (Datos de prueba).
 -- ==========================================================
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -13,7 +13,7 @@ CREATE DATABASE IF NOT EXISTS `aureus_db` DEFAULT CHARACTER SET utf8mb4 COLLATE 
 USE `aureus_db`;
 
 -- --------------------------------------------------------
--- ESTRUCTURA DE TABLAS
+-- ESTRUCTURA DDL (DATA DEFINITION LANGUAGE)
 -- --------------------------------------------------------
 
 CREATE TABLE `categoria` (
@@ -85,38 +85,68 @@ CREATE TABLE `log_sistema` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 -- --------------------------------------------------------
--- SEEDERS: VOLCADO DE DATOS MAESTROS
+-- SEEDERS (DATOS DE INICIALIZACIÓN)
+-- Nota: La contraseña encriptada por defecto es "password" para todas las cuentas.
 -- --------------------------------------------------------
 
--- Solo dejamos una categoría: Pintura
 INSERT INTO `categoria` (`nombre`, `descripcion`) VALUES
 ('Pintura', 'Óleos, acuarelas, frescos y obras pictóricas exclusivas.');
 
--- Modificamos los seeders para incluir biografías (Lore de Aureus)
+-- Sincronización Matemática de Bóvedas:
+-- Alvarus: Pujas por 10.700€ totales. Con el 12% de retención (Escrow) = 11.984€ de saldo bloqueado.
+-- Paula: Pujas por 17.150€ totales. Con el 12% de retención (Escrow) = 19.208€ de saldo bloqueado.
 INSERT INTO `usuario` (`nombre`, `email`, `password`, `biografia`, `rol`, `es_artista`, `saldo_disponible`, `saldo_bloqueado`, `dni`, `telefono`, `activo`) VALUES
 ('Admin Aureus', 'admin@aureus.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Primer Cónsul del Senado de Aureus. Guardián de las transacciones y curador del catálogo imperial.', 'admin', 0, 0.00, 0.00, '99999999Z', '600000000', 1),
 ('Leonardo Digital', 'artista@aureus.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Maestro del lienzo y el píxel. Mis obras buscan la luz en la oscuridad del neoclasicismo digital.', 'artista', 1, 400000.00, 0.00, '88888888X', '600111111', 1),
-('Comprador Alvarus', 'alvarus@aureus.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Mecenas empedernido. Buscando siempre la próxima obra maestra para mi colección privada.', 'comprador', 0, 4500.00, 3500.00, '66666666A', '600333333', 1),
-('Paula', 'paula@aureus.com', '$2y$10$qLZMY3jFCIuRaynYW80Fw.L1zuvFykUitehlkKoXpkO9H1XHmP.E2', NULL, 'comprador', 0, 0.00, 0.00, '123124', '123123', 1);
-
--- Inyectamos las 9 obras forzando que todas pertenezcan a la categoría 1 (Pintura)
-INSERT INTO `obra` (`id_vendedor`, `id_comprador`, `id_categoria`, `titulo`, `descripcion`, `imagen_url`, `precio_inicial`, `precio_actual`, `fecha_fin`, `estado`) VALUES
-(2, NULL, 1, 'El Trazo Absoluto', 'Obra abstracta contemporánea. Un grueso y expresivo trazo blanco.', 'https://images.unsplash.com/photo-1622542796254-5b9c46ab0d2f?auto=format&fit=crop&q=80&w=800', 4200.00, 4250.00, DATE_ADD(NOW(), INTERVAL 24 HOUR), 'ACTIVA'),
-(2, NULL, 1, 'Estudio de Sombras', 'Obra clásica de luces y sombras. El contraste define la crudeza de la época.', 'https://images.unsplash.com/flagged/photo-1572392640988-ba48d1a74457?auto=format&fit=crop&q=80&w=800', 14500.00, 16050.00, DATE_ADD(NOW(), INTERVAL 6 DAY), 'ACTIVA'),
-(2, NULL, 1, 'Visión Cromática de David', 'Intervención pop sobre la escultura clásica.', 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?auto=format&fit=crop&q=80&w=800', 45000.00, 52050.00, DATE_ADD(NOW(), INTERVAL 11 DAY), 'ACTIVA'),
-(2, NULL, 1, 'Profundidad Oceánica', 'Lienzo contemporáneo de gran formato.', 'https://images.unsplash.com/photo-1515405295579-ba7b45403062?auto=format&fit=crop&q=80&w=800', 1500.00, 3000.00, DATE_ADD(NOW(), INTERVAL 4 DAY), 'ACTIVA'),
-(2, NULL, 1, 'Ruinas del Viejo Mundo', 'Imponente pintura romántica.', 'https://images.unsplash.com/photo-1578301978018-3005759f48f7?auto=format&fit=crop&q=80&w=800', 25000.00, 35000.00, DATE_ADD(NOW(), INTERVAL 2 DAY), 'ACTIVA'),
-(2, NULL, 1, 'Ríos de Oro y Ónice', 'Abstracción de fluidos preciosos.', 'https://plus.unsplash.com/premium_photo-1664111766922-9477d493893e?auto=format&fit=crop&q=80&w=800', 120000.00, 155000.00, DATE_ADD(NOW(), INTERVAL 23 HOUR), 'ACTIVA'),
-(2, NULL, 1, 'El Valle del Acueducto', 'Paisaje clásico del siglo XIX.', 'https://images.unsplash.com/photo-1549289524-06cf8837ace5?auto=format&fit=crop&q=80&w=800', 8500.00, 11000.00, DATE_ADD(NOW(), INTERVAL 100 MINUTE), 'ACTIVA'),
-(2, NULL, 1, 'Bodegón de la Abundancia', 'Naturaleza muerta con frutos y flores.', 'https://images.unsplash.com/photo-1579783902915-f0b0de2c2eb3?auto=format&fit=crop&q=80&w=800', 18000.00, 22000.00, DATE_SUB(NOW(), INTERVAL 1 HOUR), 'DESIERTA'),
-(2, 3, 1, 'Tempestad en Empaste', 'Textura que simula el choque violento de las olas.', 'https://plus.unsplash.com/premium_photo-1664013263421-91e3a8101259?auto=format&fit=crop&q=80&w=800', 3500.00, 3500.00, DATE_SUB(NOW(), INTERVAL 2 HOUR), 'FINALIZADA');
-
--- Insertamos la puja para que la BD sea 100% coherente (Alvarus pujó por la obra ID 9)
-INSERT INTO `puja` (`id_obra`, `id_usuario`, `monto`, `fecha`) VALUES
-(9, 3, 3500.00, DATE_SUB(NOW(), INTERVAL 2 HOUR));
+('Comprador Alvarus', 'alvarus@aureus.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Mecenas empedernido. Buscando siempre la próxima obra maestra para mi colección privada.', 'comprador', 0, 15000.00, 11984.00, '66666666A', '600333333', 1),
+('Paula', 'paula@aureus.com', '$2y$10$qLZMY3jFCIuRaynYW80Fw.L1zuvFykUitehlkKoXpkO9H1XHmP.E2', NULL, 'comprador', 0, 10000.00, 19208.00, '123124', '123123', 1);
 
 -- --------------------------------------------------------
--- RESTRICCIONES (FKs)
+-- CATÁLOGO ESTRUCTURADO POR GAMAS COMERCIALES
+-- --------------------------------------------------------
+INSERT INTO `obra` (`id_vendedor`, `id_comprador`, `id_categoria`, `titulo`, `descripcion`, `imagen_url`, `precio_inicial`, `precio_actual`, `fecha_fin`, `estado`) VALUES
+-- GAMA EMERGENTE (50€ - 800€)
+(2, NULL, 1, 'El Trazo Absoluto', 'Obra abstracta contemporánea. Un grueso y expresivo trazo blanco.', 'https://images.unsplash.com/photo-1622542796254-5b9c46ab0d2f?auto=format&fit=crop&q=80&w=800', 150.00, 200.00, DATE_ADD(NOW(), INTERVAL 24 HOUR), 'ACTIVA'),
+(2, NULL, 1, 'Profundidad Oceánica', 'Lienzo contemporáneo de gran formato en tonos cian.', 'https://images.unsplash.com/photo-1515405295579-ba7b45403062?auto=format&fit=crop&q=80&w=800', 300.00, 450.00, DATE_ADD(NOW(), INTERVAL 4 DAY), 'ACTIVA'),
+(2, NULL, 1, 'El Valle del Acueducto', 'Paisaje clásico del siglo XIX con técnicas modernas.', 'https://images.unsplash.com/photo-1549289524-06cf8837ace5?auto=format&fit=crop&q=80&w=800', 650.00, 700.00, DATE_ADD(NOW(), INTERVAL 100 MINUTE), 'ACTIVA'),
+
+-- GAMA COLECCIONISTA (800€ - 3.000€)
+(2, NULL, 1, 'Estudio de Sombras', 'Obra clásica de luces y sombras. El contraste define la crudeza de la época.', 'https://images.unsplash.com/flagged/photo-1572392640988-ba48d1a74457?auto=format&fit=crop&q=80&w=800', 900.00, 1200.00, DATE_ADD(NOW(), INTERVAL 6 DAY), 'ACTIVA'),
+(2, NULL, 1, 'Ruinas del Viejo Mundo', 'Imponente pintura romántica. Detallismo puro.', 'https://images.unsplash.com/photo-1578301978018-3005759f48f7?auto=format&fit=crop&q=80&w=800', 1500.00, 2100.00, DATE_ADD(NOW(), INTERVAL 2 DAY), 'ACTIVA'),
+(2, 3, 1, 'Tempestad en Empaste', 'Textura que simula el choque violento de las olas.', 'https://plus.unsplash.com/premium_photo-1664013263421-91e3a8101259?auto=format&fit=crop&q=80&w=800', 2500.00, 2500.00, DATE_SUB(NOW(), INTERVAL 2 HOUR), 'FINALIZADA'),
+
+-- GAMA INVERSIÓN (+3.000€)
+(2, NULL, 1, 'Visión Cromática de David', 'Intervención pop sobre la escultura clásica.', 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?auto=format&fit=crop&q=80&w=800', 4000.00, 5200.00, DATE_ADD(NOW(), INTERVAL 11 DAY), 'ACTIVA'),
+(2, NULL, 1, 'Bodegón de la Abundancia', 'Naturaleza muerta con frutos y flores.', 'https://images.unsplash.com/photo-1579783902915-f0b0de2c2eb3?auto=format&fit=crop&q=80&w=800', 8000.00, 8000.00, DATE_SUB(NOW(), INTERVAL 1 HOUR), 'DESIERTA'),
+(2, NULL, 1, 'Ríos de Oro y Ónice', 'Abstracción de fluidos preciosos. La joya de la corona.', 'https://plus.unsplash.com/premium_photo-1664111766922-9477d493893e?auto=format&fit=crop&q=80&w=800', 12000.00, 15500.00, DATE_ADD(NOW(), INTERVAL 23 HOUR), 'ACTIVA');
+
+
+-- --------------------------------------------------------
+-- HISTORIAL TRANSACCIONAL (Soporte al Libro Mayor y Precios Actuales)
+-- --------------------------------------------------------
+INSERT INTO `puja` (`id_obra`, `id_usuario`, `monto`, `fecha`) VALUES
+-- Pujas de Alvarus (ID 3)
+(1, 3, 200.00, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+(5, 3, 2100.00, DATE_SUB(NOW(), INTERVAL 8 HOUR)),
+(7, 3, 700.00, DATE_SUB(NOW(), INTERVAL 15 MINUTE)),
+(6, 3, 2500.00, DATE_SUB(NOW(), INTERVAL 2 HOUR)), -- Tempestad en Empaste (id: 6 es id_obra en la tabla original, pero reordenamos el insert. Referencia: Obra ID 6 es ahora Tempestad ID 6)
+-- Corrección: Me guío por el ID autoincremental exacto insertado arriba.
+(8, 3, 5200.00, DATE_SUB(NOW(), INTERVAL 2 DAY)); -- ID 7 en tabla es Inversión, wait, lo referencio por orden de insert exacto.
+
+-- Para evitar fallos en el auto_increment, referenciamos las pujas directamente según su orden de inserción:
+TRUNCATE TABLE `puja`; 
+INSERT INTO `puja` (`id_obra`, `id_usuario`, `monto`, `fecha`) VALUES
+(1, 3, 200.00, DATE_SUB(NOW(), INTERVAL 5 HOUR)),     -- El Trazo Absoluto
+(2, 4, 450.00, DATE_SUB(NOW(), INTERVAL 12 HOUR)),    -- Profundidad Oceánica
+(3, 3, 700.00, DATE_SUB(NOW(), INTERVAL 15 MINUTE)),  -- El Valle del Acueducto
+(4, 4, 1200.00, DATE_SUB(NOW(), INTERVAL 1 DAY)),     -- Estudio de Sombras
+(5, 3, 2100.00, DATE_SUB(NOW(), INTERVAL 8 HOUR)),    -- Ruinas del Viejo Mundo
+(6, 3, 2500.00, DATE_SUB(NOW(), INTERVAL 2 HOUR)),    -- Tempestad en Empaste
+(7, 3, 5200.00, DATE_SUB(NOW(), INTERVAL 2 DAY)),     -- Visión Cromática de David
+(9, 4, 15500.00, DATE_SUB(NOW(), INTERVAL 30 MINUTE)); -- Ríos de Oro y Ónice
+
+-- --------------------------------------------------------
+-- DEFINICIÓN DE RESTRICCIONES (CONSTRAINTS) Y CLAVES FORÁNEAS
 -- --------------------------------------------------------
 
 ALTER TABLE `obra`

@@ -24,6 +24,9 @@ body {
   padding: 0;
 }
 
+/* ==========================================
+   TIPOGRAFÍA Y UTILIDADES
+   ========================================== */
 h1,
 h2,
 h3,
@@ -32,9 +35,7 @@ h3,
   color: var(--gold);
 }
 
-.text-muted {
-  color: #b3b3b3 !important;
-}
+.text-muted,
 label.text-muted,
 p.text-muted,
 span.text-muted {
@@ -45,14 +46,13 @@ span.text-muted {
   color: #dc3545;
 }
 
-/* Utilitarios de tipografía */
 .font-monospace {
   font-family: monospace;
   letter-spacing: 1px;
 }
 
 /* ==========================================
-   CABECERA Y NAVEGACIÓN (Adaptada a Bootstrap)
+   CABECERA Y NAVEGACIÓN
    ========================================== */
 .navbar-glass {
   background: rgba(10, 10, 10, 0.95);
@@ -61,7 +61,7 @@ span.text-muted {
 }
 
 .nav-link {
-  color: var(--light-gray) !important; /* Forzamos sobre Bootstrap */
+  color: var(--light-gray) !important;
   font-family: "Cinzel", serif;
   font-size: 1.1rem;
   border-bottom: 2px solid transparent;
@@ -70,9 +70,11 @@ span.text-muted {
     border-color 0.3s ease;
   margin-right: 1rem;
 }
+
 .nav-link:hover {
   color: var(--gold) !important;
 }
+
 .nav-link.active {
   color: var(--gold) !important;
   border-bottom: 2px solid var(--gold);
@@ -92,10 +94,12 @@ span.text-muted {
   transition: 0.3s;
   border-radius: 4px;
 }
+
 .btn-gold:hover:not(:disabled) {
   background-color: #b5952f;
   transform: translateY(-2px);
 }
+
 .btn-gold:disabled {
   background-color: #555;
   color: #888;
@@ -110,6 +114,7 @@ span.text-muted {
   cursor: pointer;
   border-radius: 4px;
 }
+
 .btn-outline:hover {
   background: var(--gold);
   color: #000;
@@ -124,13 +129,14 @@ span.text-muted {
 }
 
 /* ==========================================
-   CATÁLOGO Y TARJETAS (Mantenemos Grid de CSS para las cartas)
+   CATÁLOGO Y TARJETAS (Grid y Animaciones)
    ========================================== */
 .grid-catalog {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 2.5rem;
 }
+
 .card-auction {
   background: var(--dark-gray);
   border: 1px solid var(--border);
@@ -141,38 +147,35 @@ span.text-muted {
     border-color 0.3s;
   position: relative;
 }
+
 .card-auction:hover {
   transform: translateY(-5px);
   border-color: var(--gold);
 }
-.card-auction.terminado {
-  border-color: #dc3545;
-  opacity: 0.8;
-}
+
 .card-img-wrapper {
   height: 300px;
   overflow: hidden;
 }
+
 .card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .card-body {
   padding: 1.5rem;
 }
 
-/* ==========================================================================
-   ESTADOS DE TARJETAS (Obras Finalizadas)
-   ========================================================================== */
+/* Estados de Tarjetas Finalizadas (Fusión de código duplicado) */
 .card-auction.terminado {
-  opacity: 0.4; /* Lo hacemos semi-transparente */
-  filter: grayscale(80%); /* Apagamos los colores */
   border-color: #333 !important;
+  opacity: 0.4;
+  filter: grayscale(80%);
   transition: all 0.3s ease;
 }
 
-/* Un pequeño detalle UX: si pasan el ratón, recobra un poco de vida */
 .card-auction.terminado:hover {
   opacity: 0.8;
   filter: grayscale(20%);
@@ -188,15 +191,13 @@ span.text-muted {
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
-  background-color: var(
-    --dark-gray
-  ); /* Color de fondo por si tarda en cargar */
+  background-color: var(--dark-gray);
 }
 
 .avatar-circle {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Esto es clave para que imágenes rectangulares no se deformen */
+  object-fit: cover;
   transition: filter 0.3s ease;
 }
 
@@ -207,7 +208,7 @@ span.text-muted {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.6);
-  color: var(--gold); /* Dorado Aureus */
+  color: var(--gold);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -216,72 +217,103 @@ span.text-muted {
   transition: opacity 0.3s ease;
 }
 
-/* Al pasar el ratón, mostramos el texto de "Cambiar Retrato" */
 .avatar-wrapper:hover .avatar-overlay {
   opacity: 1;
 }
 
 .avatar-wrapper:hover .avatar-circle {
-  filter: blur(2px); /* Desenfoca un poquito la imagen de fondo */
+  filter: blur(2px);
 }
 
-/* ==========================================
+/* ============================================================================
    INTEGRACIÓN DE BIBLIOTECAS (OVERRIDES)
-   ========================================== */
+   ============================================================================ */
+
+/* --- noUiSlider (Barra de Precios Edición Lujo) --- */
 .noUi-target {
   background: #111;
   border: 1px solid var(--border);
-  box-shadow: none;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
 }
+
+.noUi-horizontal {
+  height: 6px;
+}
+
 .noUi-connect {
   background: var(--gold);
+  box-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
 }
-.noUi-handle {
-  border: 1px solid var(--gold);
+
+.noUi-horizontal .noUi-handle {
+  width: 20px;
+  height: 20px;
+  right: -10px;
+  top: -8px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
   background: var(--black);
-  box-shadow: none;
-  cursor: pointer;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+  cursor: grab;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
 }
-.noUi-handle::after,
-.noUi-handle::before {
+
+.noUi-horizontal .noUi-handle:active {
+  cursor: grabbing;
+  transform: scale(1.15);
   background: var(--gold);
 }
 
-/* Tabulator Overrides */
+.noUi-handle::after,
+.noUi-handle::before {
+  display: none;
+}
+
+/* --- Tabulator Tables (Estilo Dark Luxury) --- */
 .tabulator {
   background-color: var(--black);
   border: 1px solid var(--border);
   color: var(--light-gray);
   font-family: "Inter", sans-serif;
 }
+
 .tabulator-header {
   background-color: var(--dark-gray) !important;
   border-bottom: 1px solid var(--gold) !important;
   color: var(--gold);
   font-family: "Cinzel", serif;
 }
+
 .tabulator-row {
   background-color: var(--black) !important;
   border-bottom: 1px solid var(--border) !important;
   color: var(--light-gray) !important;
 }
+
 .tabulator-row.tabulator-row-even {
   background-color: #111 !important;
   color: var(--light-gray) !important;
 }
+
 .tabulator-row:hover {
   background-color: var(--dark-gray) !important;
   color: var(--gold) !important;
 }
+
 .tabulator-footer {
   background-color: var(--dark-gray) !important;
   border-top: 1px solid var(--border) !important;
   color: var(--light-gray);
 }
+
 .tabulator .tabulator-header .tabulator-col {
   background-color: var(--dark-gray) !important;
   border-right: 1px solid var(--border);
 }
+
 .tabulator-row .tabulator-cell {
   border-right: 1px solid var(--border);
 }

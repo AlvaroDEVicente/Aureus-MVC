@@ -1,3 +1,10 @@
+/**
+ * @file main.js
+ * @description Módulo principal y punto de entrada de la Single Page Application (SPA).
+ * Gestiona el estado global, el enrutamiento visual, la inicialización de componentes
+ * y la coordinación entre la interfaz de usuario (UI) y las llamadas a la API REST.
+ */
+
 import { api } from "./api.js";
 import {
   showView,
@@ -10,16 +17,38 @@ import { reloj } from "./timers.js";
 import { filtroPrecios } from "./slider.js";
 import { graficas } from "./charts.js";
 import { tablas } from "./tables.js";
-import Chart from "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm";
 
+// ==========================================================
+// VARIABLES GLOBALES DE ESTADO
+// ==========================================================
+
+/** @type {Array<Object>} Colección en memoria del catálogo activo. */
 let allArtworks = [];
+
+/** @type {Array<Timer>} Colección de temporizadores activos en la vista actual. */
 let activeTimers = [];
+
+/** @type {Timer|null} Temporizador único para la vista de detalle de obra. */
 let detailTimer = null;
+
+/** @type {Tabulator|null} Instancia de la tabla del Ticker de actividad global. */
 let globalTickerTable = null;
 
+// Variables de estado para el filtrado del catálogo
+let currentMinPrice = 0;
+let currentMaxPrice = Infinity;
+let currentSort = "time-asc";
+let catalogEventsAttached = false;
+
 // ==========================================================
-// HERRAMIENTA DE FORMATO DE MONEDA (UX)
+// UTILIDADES COMUNES
 // ==========================================================
+
+/**
+ * Formatea un valor numérico a estándar europeo de moneda (EUR).
+ * @param {number|string} cantidad - Valor a formatear.
+ * @returns {string} Cadena formateada (ej. "1.234,50 €").
+ */
 function formatearDinero(cantidad) {
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
@@ -27,43 +56,94 @@ function formatearDinero(cantidad) {
   }).format(cantidad);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadUserData();
-  loadCatalog();
+// ==========================================================
+// INICIALIZACIÓN DEL SISTEMA (BOOTSTRAP)
+// ==========================================================
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1. Autenticación y resolución de privilegios
+  await loadUserData();
+
+  // 2. Recuperación de estado de navegación (Persistencia F5)
+  const rutaGuardada = sessionStorage.getItem("aureus_route");
+
+  // 3. Enrutamiento basado en estado y control de acceso (RBAC)
+  if (
+    rutaGuardada === "admin" &&
+    window.currentUser &&
+    window.currentUser.rol === "admin"
+  ) {
+    window.showAdmin();
+  } else if (rutaGuardada === "vault" && window.currentUser) {
+    window.showVault();
+  } else if (
+    rutaGuardada === "workshop" &&
+    window.currentUser &&
+    window.currentUser.es_artista == 1
+  ) {
+    window.showWorkshop();
+  } else if (rutaGuardada === "profile" && window.currentUser) {
+    window.showProfile();
+  } else if (rutaGuardada && rutaGuardada.startsWith("detail_")) {
+    const idObra = rutaGuardada.split("_")[1];
+    openArtworkDetail(idObra);
+  } else {
+    window.showCatalog(); // Enrutamiento por defecto
+  }
+
+  // 4. Inicialización de listeners y sub-módulos globales
   setupBidForm();
   initGlobalTicker();
   setupDepositForm();
 });
 
-// EXPORTACIONES A WINDOW (Solo navegación de menús)
+// ==========================================================
+// EXPOSICIÓN DE MÉTODOS AL OBJETO WINDOW (PARA EVENTOS INLINE HTML)
+// ==========================================================
+
 window.showCatalog = () => {
+  sessionStorage.setItem("aureus_route", "catalog");
   showView("view-catalog", "nav-catalog-btn", detailTimer);
   loadCatalog();
 };
+
 window.showWorkshop = () => {
+  sessionStorage.setItem("aureus_route", "workshop");
   showView("view-workshop", "nav-workshop-btn", detailTimer);
   loadWorkshopData();
 };
+
 window.showVault = () => {
+  sessionStorage.setItem("aureus_route", "vault");
   showView("view-vault", "nav-vault-btn", detailTimer);
   loadVaultData();
 };
+
 window.showAdmin = () => {
+  sessionStorage.setItem("aureus_route", "admin");
   showView("view-admin", "nav-admin-btn", detailTimer);
   loadAdminData();
 };
+
 window.showProfile = () => {
-  showView("view-profile", null, detailTimer); // Usamos tu propio showView de ui.js
+  sessionStorage.setItem("aureus_route", "profile");
+  showView("view-profile", null, detailTimer);
   window.loadProfileData();
 };
 
 window.logout = () => {
+  sessionStorage.removeItem("aureus_route");
   window.location.href = "../index.php?accion=logout";
 };
 
 window.openDepositModal = () => openModal("modal-deposit");
 window.closeDepositModal = () => closeModal("modal-deposit");
+window.openNewArtworkModal = openNewArtworkModal;
 
+/**
+ * Inicia el flujo de adquisición de licencia comercial.
+ * Interactúa con la API para aplicar los cargos correspondientes y escalar privilegios.
+ */
 window.upgradeToArtist = () => {
   Swal.fire({
     title: "Forja tu Legado",
@@ -72,18 +152,17 @@ window.upgradeToArtist = () => {
     showCancelButton: true,
     confirmButtonColor: "#d4af37",
     cancelButtonColor: "#333",
-    confirmButtonText: "Sí, pagar 19,99 €",
+    confirmButtonText: "Sí, adquirir licencia (19,99 €)",
     cancelButtonText: "Cancelar",
     background: "#181818",
     color: "#d4af37",
   }).then(async (result) => {
     if (result.isConfirmed) {
       const res = await api.postJSON("ascender_artista", {});
-
       if (res.success) {
         alerta(
           "¡Bienvenido, Creador!",
-          "Tu licencia ha sido aprobada. El Taller está abierto.",
+          "Tu licencia ha sido aprobada. El Taller está operativo.",
           "success",
         );
         await loadUserData();
@@ -95,15 +174,17 @@ window.upgradeToArtist = () => {
   });
 };
 
-window.openNewArtworkModal = openNewArtworkModal;
+// ==========================================================
+// LÓGICA DE USUARIO Y SESIÓN
+// ==========================================================
 
-// ==========================================
-// LÓGICA DE USUARIO Y RUTAS
-// ==========================================
+/**
+ * Solicita y renderiza los datos del usuario autenticado en la barra de navegación.
+ * Gestiona la visibilidad de los paneles según los permisos concedidos.
+ */
 async function loadUserData() {
   const user = await api.get("obtener_usuario");
 
-  // 1. MODO INVITADO (Sin sesión)
   if (user.error) {
     document.getElementById("guest-panel").classList.remove("d-none");
     document.getElementById("logged-in-panel").classList.add("d-none");
@@ -111,13 +192,11 @@ async function loadUserData() {
     return;
   }
 
-  // 2. MODO USUARIO REGISTRADO (Comprador, Artista, Admin)
   document.getElementById("guest-panel").classList.add("d-none");
   document.getElementById("logged-in-panel").classList.remove("d-none");
   document.getElementById("nav-username").innerText = user.nombre;
-  window.currentUser = user; // Guardamos los datos para usarlos en el Perfil
+  window.currentUser = user;
 
-  // CONTROL DE ACCESO PARA EL ADMINISTRADOR
   if (user.rol === "admin") {
     document.getElementById("nav-admin-btn").style.display = "inline-block";
     document.getElementById("nav-vault-btn").style.display = "none";
@@ -136,33 +215,36 @@ async function loadUserData() {
     document.getElementById("nav-vault-btn").style.display = "inline-block";
   }
 
-  // CONTROL DE ACCESO PARA ARTISTAS
-  if (user.es_artista == 1)
+  if (user.es_artista == 1) {
     document.getElementById("nav-workshop-btn").style.display = "inline-block";
+  }
 }
 
-// ==========================================
-// CATÁLOGO
-// ==========================================
-let currentMinPrice = 0;
-let currentMaxPrice = Infinity;
-let currentSort = "time-asc";
+// ==========================================================
+// MÓDULO CATÁLOGO Y RENDERIZADO
+// ==========================================================
 
+/**
+ * Descarga el catálogo maestro, inicializa el motor de cronjobs del servidor
+ * y delega el filtrado y ordenación al estado local de la SPA.
+ */
 async function loadCatalog() {
+  // Ejecución silenciosa del proceso de liquidación para obras expiradas
   try {
     await api.get("liquidar_vencidas");
   } catch (error) {
     console.warn(
-      "Aviso: El motor de liquidación no respondió correctamente.",
+      "Aviso del Sistema: Proceso de liquidación latente fallido.",
       error,
     );
   }
 
   allArtworks = await api.get("obtener_catalogo");
-  const sortRadios = document.querySelectorAll('input[name="sort-catalog"]');
+  // Si la API devuelve error en lugar de array (ej. sin obras), lo forzamos a un array vacío
+  const safeArtworks = Array.isArray(allArtworks) ? allArtworks : [];
 
   const applyFiltersAndSort = () => {
-    let procesadas = allArtworks.filter((art) => {
+    let procesadas = safeArtworks.filter((art) => {
       return (
         Number(art.precio_actual) >= currentMinPrice &&
         Number(art.precio_actual) <= currentMaxPrice
@@ -184,41 +266,52 @@ async function loadCatalog() {
         return Number(a.precio_actual) - Number(b.precio_actual);
       } else if (currentSort === "price-desc") {
         return Number(b.precio_actual) - Number(a.precio_actual);
-      } else if (currentSort === "time-asc") {
+      } else {
         return tiempoA - tiempoB;
       }
     });
 
     document.getElementById("filtro-contador").innerText =
-      `${procesadas.length} lotes encontrados`;
+      `${procesadas.length} lotes detectados`;
     renderCatalog(procesadas);
   };
 
-  sortRadios.forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      currentSort = e.target.value;
-      applyFiltersAndSort();
+  if (!catalogEventsAttached) {
+    const sortRadios = document.querySelectorAll('input[name="sort-catalog"]');
+    sortRadios.forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        currentSort = e.target.value;
+        applyFiltersAndSort();
+      });
     });
-  });
+    catalogEventsAttached = true;
+  }
 
-  filtroPrecios.crear("slider-precio", allArtworks, (min, max) => {
-    document.getElementById("precio-min-label").innerText = `${min} €`;
-    document.getElementById("precio-max-label").innerText = `${max} €`;
+  filtroPrecios.crear("slider-precio", safeArtworks, (min, max) => {
     currentMinPrice = min;
     currentMaxPrice = max;
     applyFiltersAndSort();
   });
-
-  applyFiltersAndSort();
 }
 
+/**
+ * Mapea la colección de obras procesadas hacia la estructura DOM del catálogo.
+ * Instancia y registra los temporizadores de cuenta atrás de forma independiente.
+ * @param {Array<Object>} artworksToRender - Colección final a mostrar.
+ */
 function renderCatalog(artworksToRender) {
   const container = document.getElementById("catalog-container");
   const template = document.getElementById("artwork-card-template");
 
+  // Liberación de recursos de temporizadores previos
   activeTimers.forEach((t) => t && t.stop());
   activeTimers = [];
   container.innerHTML = "";
+
+  if (artworksToRender.length === 0) {
+    container.innerHTML = `<div class="col-12 text-center text-muted mt-5"><i class="fa-solid fa-palette fs-1 mb-3 text-gold"></i><br>El catálogo imperial está vacío en este momento.</div>`;
+    return;
+  }
 
   artworksToRender.forEach((art) => {
     const clone = template.content.cloneNode(true);
@@ -239,11 +332,10 @@ function renderCatalog(artworksToRender) {
     const secondsLeft = calculateSecondsLeft(art.fecha_fin);
 
     if (secondsLeft > 0) {
-      if (Number(art.precio_actual) === Number(art.precio_inicial)) {
-        priceLabel.innerText = "Puja Inicial";
-      } else {
-        priceLabel.innerText = "Puja Actual";
-      }
+      priceLabel.innerText =
+        Number(art.precio_actual) === Number(art.precio_inicial)
+          ? "Tasación Inicial"
+          : "Puja Líder";
     } else {
       cardArticle.classList.add("terminado");
       btn.disabled = true;
@@ -251,12 +343,12 @@ function renderCatalog(artworksToRender) {
       timerDisplay.classList.add("text-muted");
 
       if (art.estado === "DESIERTA") {
-        priceLabel.innerText = "Subasta";
-        timerDisplay.innerText = "DESIERTA";
-        clone.querySelector(".card-precio-actual").innerText = "Sin ofertas";
+        priceLabel.innerText = "Resolución";
+        timerDisplay.innerText = "LOTE DESIERTO";
+        clone.querySelector(".card-precio-actual").innerText = "Sin actividad";
       } else {
-        priceLabel.innerText = "Precio Final";
-        timerDisplay.innerText = "FINALIZADA";
+        priceLabel.innerText = "Adjudicación";
+        timerDisplay.innerText = "SUBASTA FINALIZADA";
       }
     }
 
@@ -267,11 +359,11 @@ function renderCatalog(artworksToRender) {
       timerDisplay.classList.add("text-muted");
 
       if (art.estado === "DESIERTA") {
-        timerDisplay.innerText = "DESIERTA";
-        priceLabel.innerText = "Subasta";
+        timerDisplay.innerText = "LOTE DESIERTO";
+        priceLabel.innerText = "Resolución";
       } else {
-        timerDisplay.innerText = "FINALIZADA";
-        priceLabel.innerText = "Precio Final";
+        timerDisplay.innerText = "SUBASTA FINALIZADA";
+        priceLabel.innerText = "Adjudicación";
       }
     });
 
@@ -280,9 +372,19 @@ function renderCatalog(artworksToRender) {
   });
 }
 
+// ==========================================================
+// MÓDULO DE NEGOCIACIÓN (DETALLE DE OBRA)
+// ==========================================================
+
+/**
+ * Carga la vista pormenorizada de una obra y prepara el entorno para la negociación.
+ * @param {string|number} id_obra - Identificador único de registro.
+ */
 async function openArtworkDetail(id_obra) {
+  sessionStorage.setItem("aureus_route", `detail_${id_obra}`);
+
   const data = await api.get("obtener_detalle", `&id=${id_obra}`);
-  if (data.error) return alerta("Error", data.error, "error");
+  if (data.error) return alerta("Acceso Denegado", data.error, "error");
 
   showView("view-detail", null, detailTimer);
   document.getElementById("detail-title").innerText = data.titulo;
@@ -294,63 +396,79 @@ async function openArtworkDetail(id_obra) {
   );
   document.getElementById("input-id-obra").value = data.id_obra;
 
+  // CÁLCULO DE REGLA DE NEGOCIO: Puja inicial igual al precio de salida, o incremento de +50€ sobre puja existente.
   const esPrimeraPuja = !data.history || data.history.length === 0;
   const minimoAPujar = esPrimeraPuja
     ? Number(data.precio_actual)
     : Number(data.precio_actual) + 50;
 
-  document.getElementById("input-monto").min = minimoAPujar;
-  document.getElementById("input-monto").value = minimoAPujar;
-
-  const timerDisplay = document.getElementById("detail-timer");
-  const secondsLeft = calculateSecondsLeft(data.fecha_fin);
-  detailTimer = reloj.iniciar(secondsLeft, timerDisplay);
-
-  tablas.crearHistorialObra("#artwork-bids-table", data.history || []);
-  graficas.pintarEvolucion("price-chart", data.history || []);
-
   const bidBtn = document.getElementById("btn-submit-bid");
   const bidInput = document.getElementById("input-monto");
 
-  // =================================================================
-  // NUEVO: CALCULADORA EN VIVO DE LA PRIMA DEL COMPRADOR (12%)
-  // =================================================================
+  bidInput.min = minimoAPujar;
+  bidInput.value = minimoAPujar;
+
+  const timerDisplay = document.getElementById("detail-timer");
+  const secondsLeft = calculateSecondsLeft(data.fecha_fin);
+
+  // Callback de bloqueo en tiempo real para la Condición de Carrera
+  const onTimerEnd = () => {
+    if (bidBtn) {
+      bidBtn.disabled = true;
+      bidBtn.innerText = "Licitación Cerrada";
+      bidBtn.classList.replace("btn-gold", "btn-secondary");
+      bidBtn.classList.replace("btn-danger", "btn-secondary");
+    }
+    if (bidInput) {
+      bidInput.disabled = true;
+    }
+  };
+
+  detailTimer = reloj.iniciar(secondsLeft, timerDisplay, onTimerEnd);
+
+  // SANITIZACIÓN PARA TABULATOR Y CHART.JS
+  const safeHistory = Array.isArray(data.history) ? data.history : [];
+  tablas.crearHistorialObra("#artwork-bids-table", safeHistory);
+  graficas.pintarEvolucion("price-chart", safeHistory);
+
   const feeCalculator = document.getElementById("fee-calculator");
+
   if (feeCalculator) {
     const actualizarCalculadora = () => {
       const valorPuja = parseFloat(bidInput.value) || 0;
-      const totalConTasas = valorPuja * 1.12; // Sumamos el 12% de recargo
-      feeCalculator.innerHTML = `Total a bloquear (incl. 12% Prima): <strong class="text-gold">${formatearDinero(totalConTasas)}</strong>`;
+      const totalConTasas = valorPuja * 1.12; // Inclusión matemática del 12% (Prima de riesgo)
+      feeCalculator.innerHTML = `Retención requerida (12% Prima): <strong class="text-gold">${formatearDinero(totalConTasas)}</strong>`;
     };
-
-    // Usamos oninput para no acumular listeners si se abren varias obras
     bidInput.oninput = actualizarCalculadora;
-
-    // Forzamos el cálculo inicial al abrir la ventana con el valor por defecto
     actualizarCalculadora();
   }
-  // =================================================================
 
-  if (!window.currentUser) {
+  // Lógica de control de interfaz basada en estado y privilegios al cargar la vista
+  if (secondsLeft <= 0) {
+    onTimerEnd(); // Reutilizamos la función de bloqueo
+  } else if (!window.currentUser) {
     bidBtn.disabled = true;
-    bidBtn.innerText = "Regístrate para Pujar";
+    bidBtn.innerText = "Identificación Requerida";
     bidBtn.classList.replace("btn-gold", "btn-secondary");
     bidInput.disabled = true;
   } else if (data.id_vendedor == window.currentUser.id) {
     bidBtn.disabled = true;
-    bidBtn.innerText = "Esta es tu obra";
+    bidBtn.innerText = "Autoría Registrada";
     bidBtn.classList.replace("btn-gold", "btn-danger");
     bidBtn.classList.replace("btn-secondary", "btn-danger");
     bidInput.disabled = true;
   } else {
     bidBtn.disabled = false;
-    bidBtn.innerText = "Sellar Transacción";
+    bidBtn.innerText = "Confirmar Mandato";
     bidBtn.classList.replace("btn-secondary", "btn-gold");
     bidBtn.classList.replace("btn-danger", "btn-gold");
     bidInput.disabled = false;
   }
 }
 
+/**
+ * Vincula el evento de envío del formulario de pujas y gestiona su respuesta.
+ */
 function setupBidForm() {
   document.getElementById("bid-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -359,6 +477,7 @@ function setupBidForm() {
       monto: parseFloat(document.getElementById("input-monto").value),
     };
     const result = await api.postJSON("sellar_transaccion", payload);
+
     if (result.success) {
       document.getElementById("nav-saldo-disponible").innerText =
         formatearDinero(result.nuevo_saldo_disponible);
@@ -366,28 +485,41 @@ function setupBidForm() {
         formatearDinero(result.nuevo_saldo_bloqueado);
       openArtworkDetail(payload.id_obra);
       alerta(
-        "Transacción Sellada",
-        "Su puja ha sido registrada en el libro mayor.",
+        "Contrato Registrado",
+        "Su propuesta ha sido asegurada en el libro mayor.",
         "success",
       );
-    } else alerta("Transacción Rechazada", result.message, "error");
+    } else {
+      alerta("Operación Denegada", result.message, "error");
+    }
   });
 }
 
-// ==========================================
-// TALLER, ADMIN Y BÓVEDA
-// ==========================================
+// ==========================================================
+// MÓDULOS DE ÁREA PRIVADA (TALLER, BÓVEDA, PERFIL, ADMIN)
+// ==========================================================
+
+/**
+ * Inicializa y mantiene sincronizado el listado lateral de actividad global.
+ */
 function initGlobalTicker() {
   const fetchGlobalBids = async () => {
     const data = await api.get("obtener_ticker");
-    if (!globalTickerTable)
-      globalTickerTable = tablas.crearTicker("#global-bids-table", data || []);
-    else globalTickerTable.setData(data || []);
+    const safeData = Array.isArray(data) ? data : [];
+
+    if (!globalTickerTable) {
+      globalTickerTable = tablas.crearTicker("#global-bids-table", safeData);
+    } else {
+      globalTickerTable.setData(safeData);
+    }
   };
   fetchGlobalBids();
-  setInterval(fetchGlobalBids, 10000);
+  setInterval(fetchGlobalBids, 10000); // Polling cada 10 segundos
 }
 
+/**
+ * Genera la vista y controles para el entorno de creadores.
+ */
 async function loadWorkshopData() {
   const container = document.getElementById("workshop-content");
   const data = await api.get("obtener_taller");
@@ -395,8 +527,8 @@ async function loadWorkshopData() {
   container.innerHTML = `
     <div class="workshop-dashboard">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="text-gold h5 m-0">Mi Galería Personal</h3>
-        <button onclick="openNewArtworkModal()" class="btn-gold shadow">+ Forjar Nueva Obra</button>
+        <h3 class="text-gold h5 m-0">Inventario Custodiado</h3>
+        <button onclick="openNewArtworkModal()" class="btn-gold shadow">+ Declarar Nueva Creación</button>
       </div>
       <div id="artist-gallery-grid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"></div>
     </div>
@@ -408,10 +540,10 @@ async function loadWorkshopData() {
   activeTimers.forEach((t) => t && t.stop());
   activeTimers = [];
 
-  const obras = data.artworks || [];
+  const obras = Array.isArray(data.artworks) ? data.artworks : [];
 
   if (obras.length === 0) {
-    gridContainer.innerHTML = `<p class="text-muted w-100 text-center mt-5">Aún no has forjado ninguna obra. ¡El imperio espera tu arte!</p>`;
+    gridContainer.innerHTML = `<div class="col-12 text-center text-muted mt-4"><i class="fa-solid fa-palette fs-2 mb-2 text-gold"></i><br>Ausencia de registros activos.</div>`;
     return;
   }
 
@@ -427,15 +559,16 @@ async function loadWorkshopData() {
 
     const btn = clone.querySelector(".card-btn");
     btn.disabled = true;
-    btn.innerText = art.estado === "ACTIVA" ? "Subasta en curso" : art.estado;
+    btn.innerText = art.estado === "ACTIVA" ? "Emisión en Curso" : art.estado;
     btn.classList.replace("btn-gold", "btn-outline-secondary");
 
     const timerDisplay = clone.querySelector(".countdown-display");
     const secondsLeft = calculateSecondsLeft(art.fecha_fin);
     const t = reloj.iniciar(secondsLeft, timerDisplay, () => {
       cardArticle.classList.add("terminado");
-      timerDisplay.innerText = "FINALIZADA";
-      if (btn.innerText === "Subasta en curso") btn.innerText = "FINALIZADA";
+      timerDisplay.innerText = "PLAZO CUMPLIDO";
+      if (btn.innerText === "Emisión en Curso")
+        btn.innerText = "ESPERANDO RESOLUCIÓN";
     });
 
     activeTimers.push(t);
@@ -443,12 +576,16 @@ async function loadWorkshopData() {
   });
 }
 
+/**
+ * Despliega el formulario para la declaración de una nueva obra.
+ */
 function openNewArtworkModal() {
   const container = document.getElementById("workshop-content");
   container.innerHTML = "";
   container.appendChild(
     document.getElementById("form-subir-obra-template").content.cloneNode(true),
   );
+
   document
     .getElementById("form-nueva-obra")
     .addEventListener("submit", async (e) => {
@@ -456,15 +593,20 @@ function openNewArtworkModal() {
       const result = await api.postForm("subir_obra", new FormData(e.target));
       if (result.success) {
         alerta(
-          "Lote Forjado",
-          "¡La obra ha sido enviada al Senado!",
+          "Aprobación Pendiente",
+          "Declaración registrada. El Senado revisará su aptitud.",
           "success",
         );
         loadWorkshopData();
-      } else alerta("Error en la Forja", result.message, "error");
+      } else {
+        alerta("Trámite Fallido", result.message, "error");
+      }
     });
 }
 
+/**
+ * Orquesta la descarga de métricas analíticas e instancias de administración.
+ */
 async function loadAdminData() {
   try {
     const resPython = await fetch(
@@ -503,105 +645,108 @@ async function loadAdminData() {
         });
       } else {
         topList.innerHTML =
-          "<li class='text-center text-muted'>Sin transacciones</li>";
+          "<li class='text-center text-muted'>Carencia de datos estadísticos</li>";
       }
     }
   } catch (error) {
     console.error(
-      "Fallo de conexión con el Oráculo Analítico (Python):",
+      "Incomunicación con el Servicio de Análisis (Python API):",
       error,
     );
   }
 
+  // Delegación a tablas.js para renderizado de vistas complejas
+  // SANITIZACIÓN: Aseguramos Array vacío si no hay resultados
   const works = await api.get("obtener_pendientes");
-  tablas.crearAdminPendientes(
-    "#admin-pending-table",
-    works || [],
-    async (id) => {
-      const obra = await api.get("obtener_detalle_revision", `&id=${id}`);
-      if (obra.error) {
-        alerta("Error", "No se pudo cargar el expediente.", "error");
-        return;
-      }
+  const safeWorks = Array.isArray(works) ? works : [];
 
-      Swal.fire({
-        title: `Revisión: ${obra.titulo}`,
-        html: `
-            <div class="text-start" style="color: #eee;">
-                <img src="${obra.imagen_url}" class="img-fluid rounded mb-3 border border-secondary" style="max-height: 300px; width: 100%; object-fit: cover;">
-                <p><strong>Artista:</strong> ${obra.artista_nombre}</p>
-                <p><strong>Precio Salida:</strong> ${obra.precio_inicial} €</p>
-                <p><strong>Descripción:</strong></p>
-                <p class="text-muted small">${obra.descripcion}</p>
-                <hr style="border-color: #444;">
-                <p class="text-center text-gold">¿Cumple este lote con los estándares de AUREUS?</p>
-            </div>
-        `,
-        width: "600px",
-        background: "#181818",
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonText:
-          '<i class="fa-solid fa-check"></i> Validar y Publicar',
-        denyButtonText: '<i class="fa-solid fa-xmark"></i> Rechazar',
-        cancelButtonText: "Cerrar",
-        confirmButtonColor: "#d4af37",
-        denyButtonColor: "#dc3545",
-        cancelButtonColor: "#333",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          const res = await api.postJSON("aprobar_obra", { id_obra: id });
-          if (res.success) {
-            alerta("Éxito", "La obra ya es pública en el catálogo.", "success");
-            loadAdminData();
-          } else {
-            alerta(
-              "Error",
-              res.message || "No se pudo validar la obra.",
-              "error",
-            );
-          }
-        } else if (result.isDenied) {
-          const res = await api.postJSON("rechazar_obra", { id_obra: id });
-          if (res.success) {
-            alerta(
-              "Obra Rechazada",
-              "Se ha denegado la entrada al catálogo.",
-              "info",
-            );
-            loadAdminData();
-          } else {
-            alerta("Error", "No se pudo rechazar la obra.", "error");
-          }
-        }
-      });
-    },
-  );
+  tablas.crearAdminPendientes("#admin-pending-table", safeWorks, async (id) => {
+    const obra = await api.get("obtener_detalle_revision", `&id=${id}`);
+    if (obra.error)
+      return alerta(
+        "Fallo de Acceso",
+        "No se pudo recuperar el dossier técnico.",
+        "error",
+      );
+
+    Swal.fire({
+      title: `Inspección: ${obra.titulo}`,
+      html: `
+          <div class="text-start" style="color: #eee;">
+              <img src="${obra.imagen_url}" class="img-fluid rounded mb-3 border border-secondary" style="max-height: 300px; width: 100%; object-fit: cover;">
+              <p><strong>Autor registrado:</strong> ${obra.artista_nombre}</p>
+              <p><strong>Tasación Base:</strong> ${formatearDinero(obra.precio_inicial)}</p>
+              <p><strong>Declaración de Autenticidad:</strong></p>
+              <p class="text-muted small">${obra.descripcion}</p>
+              <hr style="border-color: #444;">
+              <p class="text-center text-gold">¿Se autoriza la integración al catálogo público?</p>
+          </div>
+      `,
+      width: "600px",
+      background: "#181818",
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: '<i class="fa-solid fa-check"></i> Autorizar',
+      denyButtonText: '<i class="fa-solid fa-xmark"></i> Denegar',
+      cancelButtonText: "Posponer",
+      confirmButtonColor: "#d4af37",
+      denyButtonColor: "#dc3545",
+      cancelButtonColor: "#333",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const res = await api.postJSON("aprobar_obra", { id_obra: id });
+        if (res.success) {
+          alerta(
+            "Resolución Favorable",
+            "Publicación efectiva inmediata.",
+            "success",
+          );
+          loadAdminData();
+        } else alerta("Incidencia", res.message, "error");
+      } else if (result.isDenied) {
+        const res = await api.postJSON("rechazar_obra", { id_obra: id });
+        if (res.success) {
+          alerta(
+            "Dictamen Negativo",
+            "Registro archivado y bloqueado.",
+            "info",
+          );
+          loadAdminData();
+        } else
+          alerta(
+            "Incidencia",
+            "No se pudo alterar el estado del registro.",
+            "error",
+          );
+      }
+    });
+  });
 
   const users = await api.get("obtener_usuarios");
+  const safeUsers = Array.isArray(users) ? users : [];
   tablas.crearAdminUsuarios(
     "#admin-users-table",
-    users || [],
+    safeUsers,
     async (usuario) => {
       await api.postJSON("cambiar_rol_usuario", {
         id_usuario: usuario.id_usuario,
         rol: usuario.rol,
       });
       alerta(
-        "Rol Actualizado",
-        `El ciudadano ahora es ${usuario.rol}.`,
+        "Ajuste de Privilegios",
+        `Credenciales de ${usuario.rol} asignadas.`,
         "success",
       );
     },
     async (id) => {
       Swal.fire({
-        title: "¿Revocar Acceso?",
-        text: "Esta acción inhabilitará al ciudadano.",
+        title: "¿Procesar Inhabilitación?",
+        text: "La entidad perderá todos los derechos operativos.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d4af37",
         cancelButtonColor: "#d33",
-        confirmButtonText: "Sí, desterrar",
+        confirmButtonText: "Confirmar Cese",
         background: "#181818",
         color: "#d4af37",
       }).then(async (result) => {
@@ -610,21 +755,21 @@ async function loadAdminData() {
             id_usuario: id,
           });
           if (res.success) {
-            alerta("Expulsado", "Ciudadano desterrado del imperio.", "success");
+            alerta("Registro Terminado", "Entidad inhabilitada.", "success");
             loadAdminData();
-          } else alerta("Error", res.message, "error");
+          } else alerta("Excepción", res.message, "error");
         }
       });
     },
     async (id) => {
       Swal.fire({
         title: "¿Conceder Amnistía?",
-        text: "El ciudadano recuperará sus derechos en el imperio.",
+        text: "Los derechos operativos serán restituidos.",
         icon: "question",
         showCancelButton: true,
         confirmButtonColor: "#28a745",
         cancelButtonColor: "#333",
-        confirmButtonText: "Sí, perdonar",
+        confirmButtonText: "Ejecutar Rehabilitación",
         background: "#181818",
         color: "#d4af37",
       }).then(async (result) => {
@@ -633,15 +778,22 @@ async function loadAdminData() {
             id_usuario: id,
           });
           if (res.success) {
-            alerta("Amnistiado", "Ciudadano readmitido con éxito.", "success");
+            alerta(
+              "Rehabilitación Aprobada",
+              "Operativa estándar restaurada.",
+              "success",
+            );
             loadAdminData();
-          } else alerta("Error", res.message, "error");
+          } else alerta("Excepción", res.message, "error");
         }
       });
     },
   );
 }
 
+/**
+ * Procesa la información financiera y el libro mayor del usuario autenticado.
+ */
 async function loadVaultData() {
   const user = await api.get("obtener_usuario");
   document.getElementById("vault-available").innerText = formatearDinero(
@@ -655,10 +807,22 @@ async function loadVaultData() {
     parseFloat(user.saldo_disponible) + parseFloat(user.saldo_bloqueado);
   document.getElementById("vault-total").innerText = formatearDinero(total);
 
+  // SANITIZACIÓN: Aseguramos Array vacío para disparar placeholders de Tabulator
   const bids = await api.get("obtener_mis_pujas");
-  tablas.crearBoveda("#vault-bids-table", bids || [], confirmarRecepcionObra);
+  const safeBids = Array.isArray(bids) ? bids : [];
+  tablas.crearBoveda("#vault-bids-table", safeBids, confirmarRecepcionObra);
+
+  const historial = await api.get("obtener_historial_financiero");
+  const safeHistorial = Array.isArray(historial) ? historial : [];
+  tablas.crearHistorialTransacciones(
+    "#vault-transactions-table",
+    safeHistorial,
+  );
 }
 
+/**
+ * Inicializa el SDK de PayPal para la inyección segura de capital.
+ */
 function setupDepositForm() {
   const paypalContainer = document.getElementById("paypal-button-container");
   if (!paypalContainer) return;
@@ -669,8 +833,8 @@ function setupDepositForm() {
         const amount = document.getElementById("deposit-amount").value;
         if (amount < 10) {
           alerta(
-            "Aviso Imperial",
-            "El ingreso mínimo en la bóveda es de 10€",
+            "Restricción Aplicada",
+            "Monto inferior al mínimo permitido (10€).",
             "warning",
           );
           return false;
@@ -682,15 +846,15 @@ function setupDepositForm() {
       onApprove: async function (data, actions) {
         try {
           paypalContainer.innerHTML =
-            "<p class='text-gold text-center mt-3'>Validando transacción con el Senado...</p>";
+            "<p class='text-gold text-center mt-3'>Sincronizando certificación con la matriz bancaria...</p>";
           const result = await api.postJSON("capturar_pago_paypal", {
             orderID: data.orderID,
           });
 
           if (result.success) {
             alerta(
-              "Transacción Completada",
-              "Se han añadido " + result.monto_anadido + "€ a su bóveda.",
+              "Depósito Verificado",
+              `Adición confirmada: ${formatearDinero(result.monto_anadido)}`,
               "success",
             );
             closeModal("modal-deposit");
@@ -701,11 +865,18 @@ function setupDepositForm() {
               loadVaultData();
             }
           } else {
-            alerta("Error Bancario", result.message, "error");
+            alerta("Incidencia de Transmisión", result.message, "error");
           }
         } catch (error) {
-          console.error("Fallo crítico validando el pago:", error);
-          alerta("Error de comunicación", "El servidor no responde.", "error");
+          console.error(
+            "Excepción en la integración con pasarela exterior:",
+            error,
+          );
+          alerta(
+            "Fallo Crítico",
+            "Desconexión con el servidor de pago.",
+            "error",
+          );
         } finally {
           setTimeout(() => location.reload(), 2000);
         }
@@ -714,15 +885,19 @@ function setupDepositForm() {
     .render("#paypal-button-container");
 }
 
+/**
+ * Dispara el proceso de resolución del Escrow.
+ * @param {number} id_obra - Identificador de la transacción bloqueada.
+ */
 async function confirmarRecepcionObra(id_obra) {
   Swal.fire({
-    title: "¿Confirmar Recepción?",
-    text: "Al aceptar, certifícas que tienes la obra y los fondos bloqueados serán transferidos irrevocablemente al artista.",
+    title: "¿Ratificar Conformidad?",
+    text: "La confirmación liberará irreversiblemente el capital retenido en favor del creador.",
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#d4af37",
     cancelButtonColor: "#333",
-    confirmButtonText: "Sí, he recibido la obra",
+    confirmButtonText: "Certificar Recepción Físico",
     background: "#181818",
     color: "#d4af37",
   }).then(async (result) => {
@@ -731,21 +906,20 @@ async function confirmarRecepcionObra(id_obra) {
         id_obra: id_obra,
       });
       if (res.success) {
-        alerta("¡Transacción Sellada!", res.message, "success");
+        alerta("Escrow Finalizado", res.message, "success");
         loadVaultData();
         loadUserData();
       } else {
-        alerta("Aviso del Senado", res.message, "error");
+        alerta("Conflicto Estructural", res.message, "error");
       }
     }
   });
 }
 
-// ==========================================================
-// 🛡️ LÓGICA DEL PERFIL DE USUARIO (FUSIONADA Y CORREGIDA)
-// ==========================================================
+/**
+ * Obtiene y estructura el perfil cívico del usuario.
+ */
 window.loadProfileData = async function () {
-  // 1. Mostrar/Ocultar el botón de Forjar Legado y pintar la gráfica
   const user = window.currentUser;
   if (user) {
     const disponible = parseFloat(user.saldo_disponible) || 0;
@@ -753,14 +927,10 @@ window.loadProfileData = async function () {
     graficas.pintarPerfil("profile-chart", disponible, bloqueado);
 
     const upgradeSection = document.getElementById("upgrade-artist-section");
-    if (user.rol === "comprador" && user.es_artista == 0) {
-      upgradeSection.style.display = "block";
-    } else {
-      upgradeSection.style.display = "none";
-    }
+    upgradeSection.style.display =
+      user.rol === "comprador" && user.es_artista == 0 ? "block" : "none";
   }
 
-  // 2. Traer los datos extra del perfil desde la BD
   try {
     const res = await api.get("obtener_mi_perfil");
     if (res && !res.error) {
@@ -771,20 +941,175 @@ window.loadProfileData = async function () {
       document.getElementById("perfil-biografia").value = res.biografia || "";
     }
   } catch (error) {
-    console.error("Error cargando el expediente del ciudadano:", error);
+    console.error("Fallo de recuperación de datos filiatorios:", error);
   }
 };
 
+/**
+ * Transmite la actualización de los datos biográficos.
+ */
 window.guardarBiografia = async function () {
   const bioText = document.getElementById("perfil-biografia").value;
   const res = await api.postJSON("guardar_biografia", { biografia: bioText });
   if (res.success) {
     alerta(
-      "Expediente Actualizado",
-      "Tu historia ha sido tallada en piedra con éxito.",
+      "Datos Consignados",
+      "Expediente alterado correctamente.",
       "success",
     );
   } else {
-    alerta("Error", "No se pudo actualizar la biografía.", "error");
+    alerta("Denegación", "Imposibilidad de persistir los cambios.", "error");
+  }
+};
+
+// ==========================================================
+// MÓDULO EXCEPCIONAL ADMINISTRATIVO (MODO DIOS / OVERRIDE)
+// ==========================================================
+
+window.toggleGodMode = () => {
+  const panel = document.getElementById("god-mode-panel");
+  panel.classList.toggle("d-none");
+};
+
+window.adminSumarFondos = async () => {
+  const users = await api.get("obtener_usuarios");
+  if (!users || users.error)
+    return alerta(
+      "Incompatibilidad",
+      "Listado maestro no disponible.",
+      "error",
+    );
+
+  let optionsHTML =
+    '<option value="" disabled selected>Identificar receptor...</option>';
+  users.forEach((u) => {
+    optionsHTML += `<option value="${u.id_usuario}">UID[${u.id_usuario}] - ${u.nombre} (${u.email})</option>`;
+  });
+
+  const { value: formValues } = await Swal.fire({
+    title: "Ejecución de Inyección Monetaria",
+    html:
+      `<select id="swal-input-id-user" class="form-select bg-dark text-gold border-secondary mb-3 w-75 mx-auto">${optionsHTML}</select>` +
+      `<input id="swal-input-dinero" type="number" class="form-control bg-dark text-light border-secondary w-75 mx-auto" placeholder="Especificar volumen (€)">`,
+    focusConfirm: false,
+    showCancelButton: true,
+    background: "#181818",
+    color: "#d4af37",
+    confirmButtonText: "Materializar Depósito",
+    cancelButtonText: "Descartar",
+    preConfirm: () => {
+      const id = document.getElementById("swal-input-id-user").value;
+      const dinero = document.getElementById("swal-input-dinero").value;
+      if (!id)
+        Swal.showValidationMessage("Selección de identidad obligatoria.");
+      if (!dinero) Swal.showValidationMessage("Monto numérico requerido.");
+      return [id, dinero];
+    },
+  });
+
+  if (formValues) {
+    const res = await api.postJSON("admin_sumar_fondos", {
+      id_usuario: formValues[0],
+      cantidad: formValues[1],
+    });
+    if (res.success) {
+      alerta("Aprobado", "Integración de saldos forzada ejecutada.", "success");
+      loadAdminData();
+    } else alerta("Desviación", res.message, "error");
+  }
+};
+
+window.adminModificarTiempo = async () => {
+  const activas = await api.get("obtener_catalogo");
+  const pendientes = await api.get("obtener_pendientes");
+  const todasLasObras = [...(activas || []), ...(pendientes || [])];
+
+  let optionsHTML =
+    '<option value="" disabled selected>Localizar vector de destino...</option>';
+  todasLasObras.forEach((o) => {
+    optionsHTML += `<option value="${o.id_obra}">LOTE[${o.id_obra}] - ${o.titulo} (${o.estado || "PENDIENTE"})</option>`;
+  });
+
+  const { value: formValues } = await Swal.fire({
+    title: "Manipulación Temporal Cronológica",
+    html:
+      `<select id="swal-input-id-obra" class="form-select bg-dark text-gold border-secondary mb-3 w-100">${optionsHTML}</select>` +
+      `<label class="text-muted small d-block mb-1 text-start">Reasignación límite (ISO Datetime):</label>` +
+      `<input id="swal-input-fecha" type="datetime-local" class="form-control bg-dark text-light border-secondary w-100">`,
+    focusConfirm: false,
+    showCancelButton: true,
+    background: "#181818",
+    color: "#d4af37",
+    confirmButtonText: "Sobrescribir Cierre",
+    preConfirm: () => {
+      const id = document.getElementById("swal-input-id-obra").value;
+      const fecha = document.getElementById("swal-input-fecha").value;
+      if (!id)
+        Swal.showValidationMessage("Defina el punto focal de la operación.");
+      if (!fecha)
+        Swal.showValidationMessage("Asigne parámetros temporales absolutos.");
+      return [id, fecha];
+    },
+  });
+
+  if (formValues) {
+    const res = await api.postJSON("admin_modificar_tiempo", {
+      id_obra: formValues[0],
+      fecha_fin: formValues[1],
+    });
+    if (res.success) {
+      alerta(
+        "Sobrescritura Positiva",
+        "El margen de operación ha mutado.",
+        "success",
+      );
+      loadAdminData();
+      loadCatalog();
+    } else alerta("Rechazo de Parámetros", res.message, "error");
+  }
+};
+
+window.adminBorrarObra = async () => {
+  const activas = await api.get("obtener_catalogo");
+  const pendientes = await api.get("obtener_pendientes");
+  const todasLasObras = [...(activas || []), ...(pendientes || [])];
+
+  let optionsHTML =
+    '<option value="" disabled selected>Indicar objetivo de purga...</option>';
+  todasLasObras.forEach((o) => {
+    optionsHTML += `<option value="${o.id_obra}">LOTE[${o.id_obra}] - ${o.titulo}</option>`;
+  });
+
+  const { value: id_obra } = await Swal.fire({
+    title: "Iniciando Protocolo de Erradicación",
+    text: "La estructura de datos de este elemento será físicamente destruida.",
+    icon: "warning",
+    html: `<select id="swal-delete-obra" class="form-select bg-dark text-gold border-danger mt-3 w-100">${optionsHTML}</select>`,
+    showCancelButton: true,
+    confirmButtonColor: "#dc3545",
+    confirmButtonText: "Proceder",
+    background: "#181818",
+    color: "#d4af37",
+    preConfirm: () => {
+      const id = document.getElementById("swal-delete-obra").value;
+      if (!id)
+        Swal.showValidationMessage(
+          "Especifique un lote válido para su aislamiento.",
+        );
+      return id;
+    },
+  });
+
+  if (id_obra) {
+    const res = await api.postJSON("admin_borrar_obra", { id_obra: id_obra });
+    if (res.success) {
+      alerta(
+        "Desvinculado",
+        "El objeto ha cesado en su existencia tabular.",
+        "success",
+      );
+      loadAdminData();
+      loadCatalog();
+    } else alerta("Contención Activa", res.message, "error");
   }
 };
