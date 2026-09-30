@@ -177,8 +177,9 @@ api_python/ (FastAPI) ──────────── lectura analítica �
 
 1. Importa `aureus_db_seeders.sql` en MySQL o MariaDB. Crea `aureus_db` con usuarios, obras y pujas de prueba.
 2. Revisa las credenciales en `modelos/BaseDatos.php`.
-3. Sirve el proyecto con Apache y PHP 8 (por ejemplo, XAMPP) y abre `public/index.html`.
-4. Para las métricas del Senado: `pip install -r api_python/requirements.txt` y, dentro de `api_python/`, `uvicorn api:app --port 8000`.
+3. Copia `config/paypal.example.php` como `config/paypal.php` y pon tus claves del sandbox de PayPal (o define `PAYPAL_CLIENT_ID` y `PAYPAL_SECRET`). Ese archivo está en `.gitignore`.
+4. Sirve el proyecto con Apache y PHP 8 (por ejemplo, XAMPP) y abre `public/index.html`.
+5. Para las métricas del Senado: `pip install -r api_python/requirements.txt` y, dentro de `api_python/`, `uvicorn api:app --port 8000`.
 
 ---
 

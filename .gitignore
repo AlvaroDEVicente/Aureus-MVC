@@ -14,5 +14,6 @@ public/uploads/*
 .DS_Store
 Thumbs.db
 
-# Credenciales (si en el futuro añades un .env)
+# Credenciales: nunca se suben
 .env
+config/paypal.php
