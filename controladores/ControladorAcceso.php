@@ -233,9 +233,17 @@ class ControladorAcceso
             exit();
         }
 
-        // Credenciales del entorno Sandbox de PayPal
-        $clientId = "AV6U32dmQP_D374qGRyhD3_THQPhwQ_HOOSdoVDljYflDlc4UqniKdwYWV9tCjANmc_niIpZHUfgoW_Q";
-        $secret = "ELLrBLpsfk4EIMMnxP-HVMAxSult3foEed0CGsbnJOe8Ot_Ath_wdsarl6p16WIuzagtJnNSuVVz-2yE";
+        // Credenciales del entorno Sandbox de PayPal: se leen de variables de entorno
+        // o de config/paypal.php, que no se sube al repositorio (ver config/paypal.example.php).
+        $archivoConfig = __DIR__ . '/../config/paypal.php';
+        $config = is_file($archivoConfig) ? require $archivoConfig : [];
+        $clientId = getenv('PAYPAL_CLIENT_ID') ?: ($config['client_id'] ?? '');
+        $secret = getenv('PAYPAL_SECRET') ?: ($config['secret'] ?? '');
+
+        if ($clientId === '' || $secret === '') {
+            echo json_encode(["success" => false, "message" => "Pagos no configurados en el servidor."]);
+            exit();
+        }
 
         // Fase 1: Obtención del Token de Acceso (OAuth2)
         $ch = curl_init();
